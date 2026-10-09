@@ -1,0 +1,7 @@
+let nonzero {
+  0 => false
+  $A => true
+}
+
+eval nonzero 0
+eval nonzero 5

@@ -1,0 +1,7 @@
+let a => b
+let b => c
+let c => d
+let d => e
+let e => a
+
+eval a = e

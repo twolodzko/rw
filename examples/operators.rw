@@ -1,0 +1,5 @@
+
+infix != 10
+let $A != $B => not ($A = $B)
+
+eval true != false

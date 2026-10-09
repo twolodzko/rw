@@ -1,0 +1,27 @@
+
+# infix <-> 10
+# let $A <-> $B => ($A and $B) or ((not $A) and (not $B))
+
+let $A and $B => $B and $A
+let $A and true => $A
+let $A and false => false
+
+let $A or $B => $B or $A
+let $A or false => $A
+let $A or true => true
+
+let not true => false
+let not false => true
+
+eval (false and true) or (((not false)) and false)
+
+# let a
+# let not c
+# eval a <-> c
+#
+# eval true <-> false
+# eval true <-> true
+# eval false <-> false
+# eval false <-> true
+#
+# eval not true

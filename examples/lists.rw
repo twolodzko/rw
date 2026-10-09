@@ -1,0 +1,8 @@
+
+infix . 100
+let $A . $B => $A $B
+let head ($H $T) => $H
+let tail ($H $T) => $T
+
+eval head (a . b . c . d) = a
+eval tail (a . b . c . d) = b c d

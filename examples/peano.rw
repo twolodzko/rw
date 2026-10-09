@@ -1,0 +1,11 @@
+
+infix + 100
+infix * 110
+
+let $A + 0 => $A
+let $A + (S $B) => S ($A + $B)
+let $A * 0 => 0
+let $A * (S $B) => ($A * $B) + $A
+
+eval (S 0) + (S S S 0) = (S S S S 0)
+eval (S S 0) * (S S S S 0) = (S S S S S S S S 0)

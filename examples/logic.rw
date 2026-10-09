@@ -1,0 +1,25 @@
+
+prefix ! 100
+infix == 50
+infix || 60
+infix && 70
+
+let $A == $A => $A
+let ! T => F
+let ! F => T
+let ! ! $A => $A
+let $A && $B => $B && $A
+let $A && T => $A
+let $A && F => F
+let $A || $B => $B || $A
+let $A || F => $A
+let $A || T => T
+# let !($A && $B) => !$A || !$B
+# let !($A || $B) => !$A && !$B
+
+let b => T
+let a => T
+let b = a
+let c => F
+
+eval !(!a) && (a || !b) && (a == b) && !(a && c) = T

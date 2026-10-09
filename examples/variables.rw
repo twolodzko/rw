@@ -1,0 +1,9 @@
+
+let c = d
+let a = b
+let b = c
+let c = e
+
+eval a = e
+eval a = b
+eval a = c

@@ -1,0 +1,11 @@
+[package]
+name = "rw"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.104"
+rustyline = "18.0.1"
+
+[dev-dependencies]
+test-case = "3.4.0"

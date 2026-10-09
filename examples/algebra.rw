@@ -1,0 +1,25 @@
+
+infix + 100
+infix - 100
+infix * 110
+infix / 110
+prefix - 150
+
+let $A + 0 => $A
+let $A - 0 => $A
+let 0 - $A => -$A
+let $A * 0 => 0
+let $A * 1 => $A
+let $A / 1 => $A
+let $A / $A => 1
+let $A / 0 => NaN
+let -(-$A) => $A
+
+let $A + (-$B) => $A - $B
+let $A + $B => $B + $A
+let $A * $B => $B * $A
+
+infix != 20
+let $A != $B => not ($A = $B)
+
+eval 0 - -(2 * 1) = 2 / 1 + 0
