@@ -70,3 +70,12 @@ BIN='./rw'
    run $BIN <(echo "assert false")
    [ "$status" -eq 1 ]
 }
+
+@test "wildcard" {
+    run $BIN <<EOF
+let _ => z
+eval (a b) = z
+EOF
+    [ "$output" = "true" ]
+    [ "$status" -eq 0 ]
+}

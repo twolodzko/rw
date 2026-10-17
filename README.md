@@ -17,7 +17,8 @@ let $A + 0 => $A
 
 for replacing every `a` with `c` and a templated rule replacing occurrences of
 `<something> + 0` with `<something>`. The `a => b` mapping is unidirectional,
-for bidirectional mapping use `a = b`.
+for bidirectional mapping use `a = b`. Variable names in rewriting rules 
+start with "$", "_" is a wildcard that can replace anything else in the pattern.
 
 Syntactic sugar can be used for defining functions mapping different inputs
 to outputs, for example:

@@ -23,6 +23,8 @@ pub(crate) enum Token {
     LParenth,
     /// )
     RParenth,
+    /// _
+    Wildcard,
     /// \n
     Newline,
     /// ;
@@ -99,6 +101,10 @@ impl<R: Reader> Tokenizer<R> {
                 '}' => {
                     self.reader.skip();
                     return Ok(Some(RBracket));
+                }
+                '_' => {
+                    self.reader.skip();
+                    return Ok(Some(Wildcard));
                 }
                 '"' => {
                     return Ok(Some(String(self.read_string()?)));
@@ -218,6 +224,7 @@ impl std::fmt::Display for Token {
             RParenth => write!(f, ")"),
             Newline => write!(f, r"\n"),
             Semicolon => write!(f, ";"),
+            Wildcard => write!(f, "_"),
         }
     }
 }

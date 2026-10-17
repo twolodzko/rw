@@ -217,6 +217,7 @@ impl<R: Reader> Parser<R> {
                     };
                 }
                 Number(s) | String(s) => return Ok(Expr::Literal(s)),
+                Wildcard => return Ok(Expr::Windcard),
                 Variable(s) => return Ok(Expr::Variable(s)),
                 LParenth => {
                     let expr = self.expr(true)?;
