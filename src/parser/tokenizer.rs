@@ -7,6 +7,8 @@ pub(crate) enum Token {
     Keyword(String),
     /// numerical keyword
     Number(String),
+    /// string
+    String(String),
     /// variable name
     Variable(String),
     /// =>
@@ -99,7 +101,7 @@ impl<R: Reader> Tokenizer<R> {
                     return Ok(Some(RBracket));
                 }
                 '"' => {
-                    return Ok(Some(Keyword(self.read_string()?)));
+                    return Ok(Some(String(self.read_string()?)));
                 }
                 '$' => {
                     self.reader.skip();
@@ -173,7 +175,6 @@ impl<R: Reader> Tokenizer<R> {
 
     fn read_string(&mut self) -> Result<String> {
         let mut acc = String::new();
-        acc.push('"');
         self.reader.skip();
 
         while let Some(c) = self.reader.next()? {
@@ -190,10 +191,7 @@ impl<R: Reader> Tokenizer<R> {
                         }
                     }
                 }
-                '"' => {
-                    acc.push(c);
-                    return Ok(acc);
-                }
+                '"' => return Ok(acc),
                 _ => acc.push(c),
             }
         }
@@ -211,6 +209,7 @@ impl std::fmt::Display for Token {
         match self {
             Keyword(s) | Number(s) => write!(f, "{}", s),
             Variable(s) => write!(f, "${}", s),
+            String(s) => write!(f, "\"{}\"", s),
             MapsTo => write!(f, "=>"),
             SaveTo => write!(f, ":="),
             LBracket => write!(f, "{{"),

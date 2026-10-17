@@ -139,6 +139,13 @@ impl<R: Reader> Parser<R> {
                             self.end_of_line()?;
                             return Ok(Some(Op::new_infix(name.to_string(), prec)));
                         }
+                        "load" => {
+                            if let Some(String(path)) = self.tokenizer.next()? {
+                                return Ok(Some(Load(path)));
+                            } else {
+                                bail!("invalid path")
+                            }
+                        }
                         _ => {}
                     }
                 }
@@ -209,7 +216,7 @@ impl<R: Reader> Parser<R> {
                         _ => Ok(Expr::Literal(s)),
                     };
                 }
-                Number(s) => return Ok(Expr::Literal(s)),
+                Number(s) | String(s) => return Ok(Expr::Literal(s)),
                 Variable(s) => return Ok(Expr::Variable(s)),
                 LParenth => {
                     let expr = self.expr(true)?;

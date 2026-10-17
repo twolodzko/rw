@@ -1,6 +1,6 @@
 use anyhow::Result;
 use rustyline::error::ReadlineError;
-use rw::{Parser, eval};
+use rw::{Parser, eval, eval_file};
 
 fn main() -> Result<()> {
     let mut context = rw::Rules::default();
@@ -28,10 +28,7 @@ fn main() -> Result<()> {
         }
     } else {
         for path in args.skip(1) {
-            let parser = Parser::from_file(&path)?;
-            for statement in parser {
-                eval(statement?, &mut context)?;
-            }
+            eval_file(&path, &mut context)?;
         }
     }
     Ok(())

@@ -10,6 +10,7 @@ pub enum Statement {
     Eval(Expr),
     EvalTo(String, Expr),
     Assert(Expr),
+    Load(String),
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -64,6 +65,7 @@ impl std::fmt::Display for Statement {
             Eval(e) => write!(f, "eval {}", e),
             EvalTo(k, e) => write!(f, "let {} := {}", k, e),
             Assert(e) => write!(f, "assert {}", e),
+            Load(s) => write!(f, "load {}", s),
         }
     }
 }
