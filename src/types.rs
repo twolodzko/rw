@@ -15,7 +15,7 @@ pub enum Statement {
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum Expr {
-    Windcard,
+    Wildcard,
     Bool(bool),
     Literal(String),
     Cons(Box<Expr>, Box<Expr>),
@@ -28,7 +28,7 @@ impl Expr {
     pub(crate) fn complexity(&self) -> usize {
         use Expr::*;
         match self {
-            Windcard | Bool(_) | Literal(_) | Variable(_) => 1,
+            Wildcard | Bool(_) | Literal(_) | Variable(_) => 1,
             Cons(head, tail) => head.complexity() + tail.complexity(),
             Prefix(_, val) => 1 + val.complexity(),
             Infix(_, lhs, rhs) => 1 + lhs.complexity() + rhs.complexity(),
@@ -38,7 +38,7 @@ impl Expr {
     pub(crate) fn is_constant(&self) -> bool {
         use Expr::*;
         match self {
-            Bool(_) | Literal(_) | Windcard => true,
+            Bool(_) | Literal(_) | Wildcard => true,
             Variable(_) => false,
             Cons(head, tail) => head.is_constant() && tail.is_constant(),
             Prefix(_, val) => val.is_constant(),
@@ -63,7 +63,7 @@ impl std::fmt::Display for Statement {
             NewInfix(s, p) => write!(f, "infix {} {}", s, p),
             Let(e) => write!(f, "let {}", e),
             LetMap(m) => write!(f, "let {}", m),
-            Rewrite(e) => write!(f, "eval {}", e),
+            Rewrite(e) => write!(f, "rewrite {}", e),
             EvalTo(k, e) => write!(f, "let {} := {}", k, e),
             Assert(e) => write!(f, "assert {}", e),
             Load(s) => write!(f, "load {}", s),
@@ -75,11 +75,11 @@ impl std::fmt::Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use Expr::*;
         fn is_atom(expr: &Expr) -> bool {
-            matches!(expr, Literal(_) | Bool(_) | Variable(_) | Windcard)
+            matches!(expr, Literal(_) | Bool(_) | Variable(_) | Wildcard)
         }
 
         match self {
-            Windcard => write!(f, "_"),
+            Wildcard => write!(f, "_"),
             Bool(v) => write!(f, "{}", v),
             Literal(v) => write!(f, "{}", v),
             Cons(h, t) => write!(f, "{} {}", h, t),
@@ -105,7 +105,7 @@ impl std::fmt::Debug for Expr {
 
         use Expr::*;
         match self {
-            Windcard => write!(f, "_"),
+            Wildcard => write!(f, "_"),
             Bool(v) => write!(f, "{}", v),
             Literal(v) => write!(f, "{}", v),
             Cons(h, t) => write!(f, "({:?} {:?})", h, t),

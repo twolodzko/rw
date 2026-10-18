@@ -65,9 +65,9 @@ impl Context {
         }
         use Expr::*;
         match expr {
-            Windcard => true,
+            Wildcard => true,
             Bool(v) => *v,
-            Prefix(Op::Not, val) if let Windcard = **val => true,
+            Prefix(Op::Not, val) if let Wildcard = **val => true,
             Prefix(Op::Not, val) => !self.is_true(val),
             Infix(Op::Equals, lhs, rhs) => self.equal(lhs, rhs),
             Infix(Op::And, lhs, rhs) => self.is_true(lhs) && self.is_true(rhs),
@@ -80,7 +80,7 @@ impl Context {
     fn equal(&mut self, lhs: &Expr, rhs: &Expr) -> bool {
         use Expr::*;
         match (lhs, rhs) {
-            (Windcard, _) | (_, Windcard) => true,
+            (Wildcard, _) | (_, Wildcard) => true,
             (Bool(l), Bool(r)) => l == r,
             (Literal(l), Literal(r)) => self.literals_equal(l, r),
             (Cons(lh, lt), Cons(rh, rt)) => self.equal(lh, rh) && self.equal(lt, rt),

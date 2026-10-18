@@ -99,7 +99,7 @@ impl Mapping {
 fn is_match(pattern: &Expr, value: &Expr, vars: &mut HashMap<String, Expr>) -> bool {
     use Expr::*;
     match (pattern, value) {
-        (Windcard, _) | (_, Windcard) => true,
+        (Wildcard, _) | (_, Wildcard) => true,
         (Bool(l), Bool(r)) => l == r,
         (Literal(l), Literal(r)) => l == r,
         (Cons(lh, lt), Cons(rh, rt)) => is_match(lh, rh, vars) && is_match(lt, rt, vars),
