@@ -1,8 +1,7 @@
-use std::{env::current_dir, path::PathBuf};
-
 use anyhow::Result;
 use rustyline::error::ReadlineError;
 use rw::{Parser, WORKING_DIRECTORY, eval, eval_file};
+use std::{env::current_dir, path::PathBuf};
 
 fn main() -> Result<()> {
     let mut context = rw::Context::default();
