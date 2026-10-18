@@ -58,67 +58,6 @@ The language supports the following data types:
 * literals like `a`, `Foo`, `42`, or `"hello, world!"`
 * lists `a b c` which technically are cons pairs, as in lisp `(a (b c))`
 
-## TODO
-
-```text
-let foo :
-| A B => C
-| D E => F
-
-```
-
-* `let key := expr` --> `var &key := expr`, and `&key`. The variables are not mappings, they are
-  directly replaced in the statements during the evaluation. They are expanded during "let" step
-  and not allowed during dynamic dispatch.
-* semicolon at end of line
-
-```text
-open "path/to/file" as name
-
-class algebra {
-  let ...
-  let x := ...
-  eval ...
-  assert ...
-  ...
-}
-
-assert 2 + 2 = 4 by algebra logic
-
-```
-
-## Sets
-
-```text
-var S := {}
-let x in S
-let y in S
-
-assert all x in S: not x
-```
-
-## Functions
-
-* Function is not a rule, it needs an explicit call.
-* If function does not match the arguments it fails with an error.
-* Function has it's own context.
-
-```text
-fun foo A B ... => ...
-
-fun foo A B ... => {
-  ...
-  ...
-}
-
-fun foo
-   | A B ... => ...
-   | _ => ...
-
-# function for a simple rewrite
-fun add_neg X + -Y => X - Y
-```
-
 ## Resources
 
 * https://en.wikipedia.org/wiki/Rewriting
