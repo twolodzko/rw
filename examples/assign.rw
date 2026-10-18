@@ -1,0 +1,8 @@
+load "math.rw"
+
+let $A and false => $A
+let y => z
+
+let x := not y
+
+rewrite x

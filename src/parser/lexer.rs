@@ -117,10 +117,10 @@ impl<R: Reader> Parser<R> {
                                 }
                             }
                         }
-                        "eval" => {
+                        "rewrite" => {
                             let expr = self.expr(false)?;
                             self.end_of_line()?;
-                            return Ok(Some(Eval(expr)));
+                            return Ok(Some(Rewrite(expr)));
                         }
                         "assert" => {
                             let expr = self.expr(false)?;

@@ -4,7 +4,7 @@ use crate::{
     Parser, WORKING_DIRECTORY,
     mapping::Mapping,
     operators::Op,
-    simplify::Context,
+    rewrite::Context,
     types::{Expr, Statement},
 };
 use anyhow::{Result, bail};
@@ -25,20 +25,22 @@ pub fn eval(statement: Statement, context: &mut Context) -> Result<()> {
             }
         }
         LetMap(map) => context.insert_mapping(map)?,
-        Eval(expr) => {
+        Rewrite(expr) => {
             expr.validate()?;
-            let result = context.simplify(expr);
+            let result = context.rewrite(expr, false);
             println!("{}", result);
         }
         Assert(expr) => {
             expr.validate()?;
-            let ok = context.simplify(expr.clone());
-            if !matches!(ok, Expr::Bool(true)) {
-                bail!("{} is not true", expr)
+            let res = context.rewrite(expr.clone(), true);
+            if !context.is_true(&res) {
+                bail!("{} is not true", res)
+            } else {
+                println!("ok")
             }
         }
         EvalTo(key, expr) => {
-            let val = context.simplify(expr);
+            let val = context.rewrite(expr, false);
             let m = Mapping::new(Expr::Literal(key), val)?;
             context.insert_mapping(m)?;
         }
@@ -59,7 +61,7 @@ pub fn eval(statement: Statement, context: &mut Context) -> Result<()> {
 }
 
 pub fn eval_file(path: &PathBuf, context: &mut Context) -> Result<()> {
-    let parser = Parser::from_file(&path)?;
+    let parser = Parser::from_file(path)?;
     for statement in parser {
         eval(statement?, context)?;
     }

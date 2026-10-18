@@ -1,4 +1,9 @@
-use crate::{mapping::Mapping, operators::Op, queue::Queue, types::Expr};
+use crate::{
+    mapping::Mapping,
+    operators::Op,
+    queue::Queue,
+    types::Expr::{self, Bool},
+};
 use anyhow::{Result, bail};
 use std::collections::{HashMap, HashSet};
 
@@ -15,22 +20,24 @@ pub struct Context {
 }
 
 impl Context {
-    pub(crate) fn simplify(&mut self, expr: Expr) -> Expr {
+    pub(crate) fn rewrite(&mut self, expr: Expr, logical: bool) -> Expr {
         let mut queue = Queue::default();
         let mut this = expr.clone();
         let mut best: Option<Expr> = None;
 
         loop {
-            if self.is_true(&this) {
-                return Expr::Bool(true);
+            if logical {
+                if let Expr::Bool(_) = this {
+                    return this;
+                }
+                if self.is_true(&this) {
+                    return Bool(true);
+                }
             }
 
             let mut succeeded = false;
             for m in &self.rules {
                 for s in m.apply(&this) {
-                    if let Expr::Bool(_) = s {
-                        return s;
-                    }
                     succeeded = true;
                     queue.insert(s);
                 }
@@ -52,7 +59,7 @@ impl Context {
         }
     }
 
-    fn is_true(&mut self, expr: &Expr) -> bool {
+    pub(crate) fn is_true(&mut self, expr: &Expr) -> bool {
         if let Some(v) = self.facts.get(expr) {
             return *v;
         }
@@ -192,13 +199,6 @@ impl Context {
             _ => None,
         }
     }
-
-    pub(crate) fn merge(&mut self, other: Context) -> Result<()> {
-        for m in other.rules {
-            self.insert_mapping(m)?;
-        }
-        Ok(())
-    }
 }
 
 #[cfg(test)]
@@ -213,8 +213,8 @@ mod tests {
 
         for stmt in Parser::from(source) {
             match stmt? {
-                Statement::Eval(expr) => {
-                    acc.push(rules.simplify(expr).to_string());
+                Statement::Rewrite(expr) => {
+                    acc.push(rules.rewrite(expr, false).to_string());
                 }
                 stmt => eval(stmt, &mut rules)?,
             }
@@ -227,16 +227,16 @@ mod tests {
         let source = r"infix + 100
                        let $A + 0 => $A
                        let $A + $B => $B + $A
-                       eval (0 + 5) + 0";
+                       rewrite (0 + 5) + 0";
         assert_eq!(solve_all(source).unwrap(), vec!["5".to_string()]);
     }
 
     #[test]
-    fn simplify_is_deterministic() {
+    fn rewrite_is_deterministic() {
         let source = r"infix + 100
                        let $A + 0 => $A
                        let $A + $B => $B + $A
-                       eval (0 + 5) + 0";
+                       rewrite (0 + 5) + 0";
         let first = solve_all(source).unwrap();
         for _ in 0..20 {
             assert_eq!(solve_all(source).unwrap(), first);
@@ -244,21 +244,21 @@ mod tests {
     }
 
     #[test]
-    fn simplify_applies_mapping() {
+    fn rewrite_applies_mapping() {
         let source = r"let foo => bar
-                       eval foo";
+                       rewrite foo";
         assert_eq!(solve_all(source).unwrap(), vec!["bar".to_string()]);
     }
 
     #[test]
     fn literal_mappings() {
         let source = r"let a => b
-                       eval a = b
+                       rewrite a = b
                        let b => c
-                       eval a = c";
+                       rewrite a = c";
         assert_eq!(
             solve_all(source).unwrap(),
-            vec!["true".to_string(), "true".to_string()]
+            vec!["b = b".to_string(), "c = c".to_string()]
         );
     }
 
@@ -266,7 +266,7 @@ mod tests {
     fn mappings_are_unidirectional() {
         let source = r"let a => b
                        let a => c
-                       eval b = c";
+                       rewrite b = c";
         assert_eq!(solve_all(source).unwrap(), vec!["b = c".to_string()]);
     }
 

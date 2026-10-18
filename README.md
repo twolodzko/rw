@@ -29,22 +29,23 @@ let nonzero {
   $A => true
 }
 
-eval nonzero 5
-eval nonzero 0
+rewrite nonzero 5
+rewrite nonzero 0
 ```
 
-The rewriting rules can be evaluated using `eval`:
+The rewriting rules can be evaluated using `rewrite`. The rules are applied
+to the given query until no more simplifications are possible. The result
+of the simplification is printed.
+
+The `assert` command simplifies the query and checks if the result is logically
+true, failing with an error if the check failed.
 
 ```text
 infix != 10
 let $A != $B => not ($A = $B)
 
-eval true != false
+assert true != false
 ```
-
-The evaluation simplifies the given query until no more simplifications
-are possible to the query evaluates directly to a boolean value. The result
-of the evaluation is printed.
 
 As shown in the example above, user can define their own operators using
 `prefix <name> <precedence>` and `infix <name> <precedence>`. The actions
@@ -82,7 +83,7 @@ class algebra {
   ...
 }
 
-eval 2 + 2 = 4 by algebra logic
+assert 2 + 2 = 4 by algebra logic
 
 ```
 
@@ -93,7 +94,7 @@ var S := {}
 let x in S
 let y in S
 
-eval all x in S: not x
+assert all x in S: not x
 ```
 
 ## Functions

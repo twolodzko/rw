@@ -7,5 +7,7 @@ let $A + (S $B) => S ($A + $B)
 let $A * 0 => 0
 let $A * (S $B) => ($A * $B) + $A
 
-eval (S 0) + (S S S 0) = (S S S S 0)
-eval (S S 0) * (S S S S 0) = (S S S S S S S S 0)
+assert (S 0) + (S S S 0) = (S S S S 0)
+assert (S S 0) * (S S S S 0) = (S S S S S S S S 0)
+
+rewrite (S S 0) * (S S S S 0)

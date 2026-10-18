@@ -5,4 +5,4 @@ let a and c
 let $A and $B => $B and $A
 let $A and true => $A
 
-eval a and (b and c)
+assert a and (b and c)

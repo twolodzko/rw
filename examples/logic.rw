@@ -22,4 +22,4 @@ let a => T
 let b = a
 let c => F
 
-eval !(!a) && (a || !b) && (a == b) && !(a && c) = T
+assert !(!a) && (a || !b) && (a == b) && !(a && c) = T

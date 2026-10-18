@@ -13,7 +13,7 @@ let $A or true => true
 let not true => false
 let not false => true
 
-eval (false and true) or (((not false)) and false)
+assert (false and true) or (((not false)) and false)
 
 # let a
 # let not c

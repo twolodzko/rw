@@ -13,10 +13,10 @@ let -(-$A) => $A
 let $A - 0 => $A
 let 0 - $A => -$A
 
-let $A * 0 => 0
+let _ * 0 => 0
 let $A * 1 => $A
 let $A * $B => $B * $A
 
 let $A / 1 => $A
 let $A / $A => 1
-let $A / 0 => NaN
+let _/ 0 => NaN

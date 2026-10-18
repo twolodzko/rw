@@ -3,5 +3,5 @@ let nonzero {
   $A => true
 }
 
-eval nonzero 0
-eval nonzero 5
+assert not (nonzero 0)
+assert nonzero 5

@@ -4,4 +4,4 @@ let c => d
 let d => e
 let e => a
 
-eval a = e
+assert a = e
