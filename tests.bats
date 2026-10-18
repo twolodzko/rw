@@ -66,6 +66,12 @@ BIN='./rw'
    [ "$status" -eq 0 ]
 }
 
+@test "examples/imports/main.rw" {
+   run $BIN examples/imports/main.rw
+   [ "$output" = "true" ]
+   [ "$status" -eq 0 ]
+}
+
 @test "Failed assertion" {
    run $BIN <(echo "assert false")
    [ "$status" -eq 1 ]

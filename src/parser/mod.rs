@@ -35,7 +35,7 @@ impl TryFrom<&PathBuf> for Parser<FileReader> {
 }
 
 impl Parser<FileReader> {
-    pub fn from_file(path: &str) -> Result<Self> {
+    pub fn from_file(path: &PathBuf) -> Result<Self> {
         let reader = FileReader::try_from(path)?;
         let tokenizer = Tokenizer::<FileReader>::new(reader);
         Ok(Parser::new(tokenizer))

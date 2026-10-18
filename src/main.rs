@@ -1,12 +1,19 @@
+use std::{env::current_dir, path::PathBuf};
+
 use anyhow::Result;
 use rustyline::error::ReadlineError;
-use rw::{Parser, eval, eval_file};
+use rw::{Parser, WORKING_DIRECTORY, eval, eval_file};
 
 fn main() -> Result<()> {
-    let mut context = rw::Rules::default();
+    let mut context = rw::Context::default();
 
     let args = std::env::args();
     if args.len() == 1 {
+        #[allow(static_mut_refs)]
+        unsafe {
+            WORKING_DIRECTORY.push(current_dir()?);
+        }
+
         for r in Parser::from_stdin()? {
             match r {
                 Ok(s) => {
@@ -28,6 +35,11 @@ fn main() -> Result<()> {
         }
     } else {
         for path in args.skip(1) {
+            let path = PathBuf::from(path);
+            #[allow(static_mut_refs)]
+            unsafe {
+                WORKING_DIRECTORY.push(path.parent().unwrap().into());
+            }
             eval_file(&path, &mut context)?;
         }
     }

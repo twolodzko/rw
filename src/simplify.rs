@@ -3,7 +3,7 @@ use anyhow::{Result, bail};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Default, Clone)]
-pub struct Rules {
+pub struct Context {
     /// mappings to be applied
     rules: Vec<Mapping>,
     /// things that are known to be true or false
@@ -14,7 +14,7 @@ pub struct Rules {
     reachable: HashMap<String, HashSet<String>>,
 }
 
-impl Rules {
+impl Context {
     pub(crate) fn simplify(&mut self, expr: Expr) -> Expr {
         let mut queue = Queue::default();
         let mut this = expr.clone();
@@ -193,7 +193,7 @@ impl Rules {
         }
     }
 
-    pub(crate) fn merge(&mut self, other: Rules) -> Result<()> {
+    pub(crate) fn merge(&mut self, other: Context) -> Result<()> {
         for m in other.rules {
             self.insert_mapping(m)?;
         }
@@ -203,12 +203,12 @@ impl Rules {
 
 #[cfg(test)]
 mod tests {
-    use super::Rules;
+    use super::Context;
     use crate::{eval, parser::Parser, types::Statement};
     use anyhow::Result;
 
     fn solve_all(source: &str) -> Result<Vec<String>> {
-        let mut rules = Rules::default();
+        let mut rules = Context::default();
         let mut acc = Vec::new();
 
         for stmt in Parser::from(source) {
