@@ -3,8 +3,7 @@ use super::{
     tokenizer::{Token, Tokenizer},
 };
 use crate::{
-    mapping::Mapping,
-    operators::Op,
+    operators,
     parser::tokenizer::Token::Keyword,
     types::{
         Expr::{self, Cons},
@@ -56,30 +55,24 @@ impl<R: Reader> Parser<R> {
                 if let Keyword(s) = &t {
                     match s.as_str() {
                         "let" => {
-                            let expr = self.expr(false)?;
-                            match self.tokenizer.peek()? {
+                            let lhs = self.expr(false)?;
+                            let Some(sep) = self.tokenizer.next()? else {
+                                bail!("unexpected end of input")
+                            };
+                            match sep {
                                 // =>
-                                Some(MapsTo) => {
-                                    self.tokenizer.skip();
+                                MapsTo => {
                                     let template = self.expr(false)?;
                                     self.end_of_line()?;
-                                    let m = Mapping::new(expr, template)?;
-                                    return Ok(Some(LetMap(m)));
+                                    return Ok(Some(LetMap(lhs, template)));
                                 }
-                                // :=
-                                Some(SaveTo) => {
-                                    self.tokenizer.skip();
-                                    if let Expr::Literal(key) = expr {
-                                        let expr = self.expr(false)?;
-                                        self.end_of_line()?;
-                                        return Ok(Some(EvalTo(key, expr)));
-                                    } else {
-                                        bail!("left hand side of := needs to be a literal")
-                                    }
+                                // <=>
+                                Equals => {
+                                    let rhs = self.expr(false)?;
+                                    return Ok(Some(LetEquals(lhs, rhs)));
                                 }
                                 // {
-                                Some(LBracket) => {
-                                    self.tokenizer.skip();
+                                LBracket => {
                                     while let Some(t) = self.tokenizer.peek()? {
                                         if let Newline = t {
                                             self.tokenizer.skip();
@@ -87,11 +80,22 @@ impl<R: Reader> Parser<R> {
                                         }
 
                                         let tail = self.expr(false)?;
-                                        self.expect(MapsTo)?;
-                                        let rhs = self.expr(false)?;
-                                        let lhs = Cons(Box::new(expr.clone()), Box::new(tail));
-                                        let m = Mapping::new(lhs, rhs)?;
-                                        self.buffer.push_back(LetMap(m));
+                                        let lhs = Cons(Box::new(lhs.clone()), Box::new(tail));
+
+                                        let Some(t) = self.tokenizer.next()? else {
+                                            bail!("unexpected end of input")
+                                        };
+                                        match t {
+                                            MapsTo => {
+                                                let rhs = self.expr(false)?;
+                                                self.buffer.push_back(LetMap(lhs, rhs));
+                                            }
+                                            Equals => {
+                                                let rhs = self.expr(false)?;
+                                                self.buffer.push_back(LetEquals(lhs, rhs));
+                                            }
+                                            _ => bail!("unexpected token: {}", t),
+                                        }
 
                                         if let Some(Semicolon) = self.tokenizer.peek()? {
                                             self.tokenizer.skip();
@@ -110,11 +114,8 @@ impl<R: Reader> Parser<R> {
                                     }
                                     bail!("unexpected end of input")
                                 }
-                                // boolean let
-                                _ => {
-                                    self.end_of_line()?;
-                                    return Ok(Some(Let(expr)));
-                                }
+                                // invalid
+                                other => bail!("unexpected token: {}", other),
                             }
                         }
                         "rewrite" => {
@@ -122,22 +123,11 @@ impl<R: Reader> Parser<R> {
                             self.end_of_line()?;
                             return Ok(Some(Rewrite(expr)));
                         }
-                        "assert" => {
-                            let expr = self.expr(false)?;
-                            self.end_of_line()?;
-                            return Ok(Some(Assert(expr)));
-                        }
-                        "prefix" => {
-                            let name = next!(Keyword);
-                            let prec = u8::from_str(&next!(Number))?;
-                            self.end_of_line()?;
-                            return Ok(Some(Op::new_prefix(name.to_string(), prec)));
-                        }
                         "infix" => {
                             let name = next!(Keyword);
                             let prec = u8::from_str(&next!(Number))?;
                             self.end_of_line()?;
-                            return Ok(Some(Op::new_infix(name.to_string(), prec)));
+                            return Ok(Some(operators::new(name.to_string(), prec)));
                         }
                         "load" => {
                             if let Some(String(path)) = self.tokenizer.next()? {
@@ -164,20 +154,11 @@ impl<R: Reader> Parser<R> {
         use Token::*;
         // Pratt parser
         // https://matklad.github.io/2020/04/13/simple-but-powerful-pratt-parsing.html
-        let mut lhs = if let Some(Keyword(s)) = self.tokenizer.peek()?
-            && let Some((op, bp)) = Op::get_prefix(s)
-        {
-            self.tokenizer.skip();
-            // TODO: is this needed? Prefix operator always has precedence (?)
-            let rhs = self.expr_bp(bp, ignore_newline)?;
-            Expr::Prefix(op, Box::new(rhs))
-        } else {
-            self.cons()?
-        };
+        let mut lhs = self.cons()?;
 
         loop {
             let (op, bp) = match self.tokenizer.peek()? {
-                Some(Keyword(k)) if let Some(v) = Op::get_infix(k) => v,
+                Some(Keyword(k)) if let Some(v) = operators::get(k) => v,
                 Some(Newline) if ignore_newline => continue,
                 _ => break,
             };
@@ -209,16 +190,16 @@ impl<R: Reader> Parser<R> {
         use Token::*;
         if let Some(t) = self.tokenizer.next()? {
             match t {
-                Keyword(s) => {
-                    return match s.as_str() {
-                        "true" => Ok(Expr::Bool(true)),
-                        "false" => Ok(Expr::Bool(false)),
-                        _ => Ok(Expr::Literal(s)),
-                    };
-                }
-                Number(s) | String(s) => return Ok(Expr::Literal(s)),
+                Keyword(s) | Number(s) | String(s) => return Ok(Expr::Literal(s)),
                 Wildcard => return Ok(Expr::Wildcard),
                 Variable(s) => return Ok(Expr::Variable(s)),
+                Not => {
+                    let expr = self.expr(false)?;
+                    if let Expr::Not(inner) = expr {
+                        return Ok(*inner);
+                    }
+                    return Ok(Expr::Not(Box::new(expr)));
+                }
                 LParenth => {
                     let expr = self.expr(true)?;
                     self.expect(RParenth)?;
@@ -250,7 +231,7 @@ impl<R: Reader> Parser<R> {
 impl Token {
     fn is_infix(&self) -> bool {
         if let Keyword(s) = self {
-            return Op::get_infix(s).is_some();
+            return operators::get(s).is_some();
         }
         false
     }
@@ -260,7 +241,7 @@ impl Token {
         // "(" is parsed as delimiter of expression
         matches!(
             self,
-            Newline | Semicolon | LBracket | RBracket | RParenth | MapsTo | SaveTo
+            Newline | Semicolon | LBracket | RBracket | RParenth | MapsTo | Equals
         )
     }
 }
@@ -275,31 +256,18 @@ impl<R: Reader> Iterator for Parser<R> {
 
 #[cfg(test)]
 mod tests {
-    use crate::mapping::Mapping;
-
     use super::{
         Expr::*,
-        Op, Parser,
+        Parser,
         Statement::{self, *},
     };
     use anyhow::Result;
     use test_case::test_case;
 
-    #[test_case("let a -> b and c", vec![
-        Let(Infix(
-            Op::Imply,
-            Box::new(Literal("a".into())),
-            Box::new(Infix(
-                Op::And,
-                Box::new(Literal("b".into())),
-                Box::new(Literal("c".into())),
-            )))),
-     ];
-     "simple let")]
     #[test_case("let $a => $a", vec![
-        LetMap(Mapping::new(
+        LetMap(
             Variable("a".to_string()),
-            Variable("a".to_string())).unwrap()),
+            Variable("a".to_string())),
      ];
      "simple mapping")]
     fn parse(input: &str, expected: Vec<Statement>) {

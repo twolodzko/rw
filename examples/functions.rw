@@ -1,7 +1,10 @@
+infix = 10
+let $A = $A => ok
+
 let nonzero {
-  0 => false
-  $A => true
+  0 => not true
+  ~0 => true
 }
 
-assert not (nonzero 0)
-assert nonzero 5
+rewrite nonzero 0 = not true
+rewrite nonzero 5 = true

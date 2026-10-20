@@ -1,48 +1,20 @@
-use std::path::PathBuf;
-
-use crate::{
-    Parser, WORKING_DIRECTORY,
-    mapping::Mapping,
-    operators::Op,
-    rewrite::Context,
-    types::{Expr, Statement},
-};
-use anyhow::{Result, bail};
+use crate::{Parser, WORKING_DIRECTORY, mapping::Mapping, rewrite::Context, types::Statement};
+use anyhow::Result;
 use relative_path::RelativePath;
+use std::path::PathBuf;
 
 pub fn eval(statement: Statement, context: &mut Context) -> Result<()> {
     use Statement::*;
     match statement {
-        Let(expr) => {
-            let reverse = matches!(expr, Expr::Infix(Op::Equals, _, _));
-
-            let m = Mapping::try_from(expr)?;
-            context.insert_mapping(m.clone())?;
-
-            if reverse {
-                let m = m.reversed()?;
-                context.insert_mapping(m)?
-            }
+        LetEquals(lhs, rhs) => {
+            context.insert_mapping(Mapping::new(lhs.clone(), rhs.clone())?)?;
+            context.insert_mapping(Mapping::new(rhs, lhs)?)?;
         }
-        LetMap(map) => context.insert_mapping(map)?,
+        LetMap(lhs, rhs) => context.insert_mapping(Mapping::new(lhs, rhs)?)?,
         Rewrite(expr) => {
             expr.validate()?;
-            let result = context.rewrite(expr, false);
+            let result = context.rewrite(expr);
             println!("{}", result);
-        }
-        Assert(expr) => {
-            expr.validate()?;
-            let res = context.rewrite(expr.clone(), true);
-            if !context.is_true(&res) {
-                bail!("{} is not true", res)
-            } else {
-                println!("ok")
-            }
-        }
-        EvalTo(key, expr) => {
-            let val = context.rewrite(expr, false);
-            let m = Mapping::new(Expr::Literal(key), val)?;
-            context.insert_mapping(m)?;
         }
         Load(path) => {
             #[allow(static_mut_refs)]
@@ -55,7 +27,7 @@ pub fn eval(statement: Statement, context: &mut Context) -> Result<()> {
             }
         }
         // those statements are evaluated during parsing
-        NewInfix(_, _) | NewPrefix(_, _) => {}
+        NewOp(_, _) => {}
     }
     Ok(())
 }

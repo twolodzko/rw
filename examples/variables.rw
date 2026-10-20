@@ -1,9 +1,12 @@
 
-let c = d
-let a = b
-let b = c
-let c = e
+infix = 10
+let $A = $A => ok
 
-assert a = e
-assert a = b
-assert a = c
+let c <=> d
+let a <=> b
+let b <=> c
+let c <=> e
+
+rewrite a = e
+rewrite a = b
+rewrite a = c

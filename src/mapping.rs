@@ -1,4 +1,4 @@
-use crate::{operators::Op, types::Expr};
+use crate::types::Expr;
 use anyhow::{Result, bail};
 use std::collections::{HashMap, HashSet};
 
@@ -12,10 +12,6 @@ impl Mapping {
     pub(crate) fn new(pattern: Expr, template: Expr) -> Result<Mapping> {
         validate(&pattern, &template)?;
         Ok(Mapping { pattern, template })
-    }
-
-    pub(crate) fn reversed(&self) -> Result<Mapping> {
-        Mapping::new(self.template.clone(), self.pattern.clone())
     }
 
     pub(crate) fn apply(&self, expr: &Expr) -> Vec<Expr> {
@@ -44,15 +40,6 @@ impl Mapping {
                     .apply(tail)
                     .into_iter()
                     .map(|v| Cons(head.to_owned(), Box::new(v)))
-                {
-                    acc.push(s)
-                }
-            }
-            Prefix(op, val) => {
-                for s in self
-                    .apply(val)
-                    .into_iter()
-                    .map(|v| Prefix(*op, Box::new(v)))
                 {
                     acc.push(s)
                 }
@@ -86,21 +73,13 @@ impl Mapping {
             None
         }
     }
-
-    pub(crate) fn constant(&self) -> Option<(Expr, Expr)> {
-        if self.pattern.is_constant() && self.template.is_constant() {
-            Some((self.pattern.clone(), self.template.clone()))
-        } else {
-            None
-        }
-    }
 }
 
 fn is_match(pattern: &Expr, value: &Expr, vars: &mut HashMap<String, Expr>) -> bool {
     use Expr::*;
     match (pattern, value) {
         (Wildcard, _) | (_, Wildcard) => true,
-        (Bool(l), Bool(r)) => l == r,
+        (Not(n), v) | (v, Not(n)) => !is_match(n, v, &mut vars.clone()),
         (Literal(l), Literal(r)) => l == r,
         (Cons(lh, lt), Cons(rh, rt)) => is_match(lh, rh, vars) && is_match(lt, rt, vars),
         (Variable(k), v) => {
@@ -111,7 +90,6 @@ fn is_match(pattern: &Expr, value: &Expr, vars: &mut HashMap<String, Expr>) -> b
                 true
             }
         }
-        (Prefix(lo, lv), Prefix(ro, rv)) => lo == ro && is_match(lv, rv, vars),
         (Infix(lo, la, lb), Infix(ro, ra, rb)) => {
             lo == ro && is_match(la, ra, vars) && is_match(lb, rb, vars)
         }
@@ -128,10 +106,6 @@ fn render(template: &Expr, vars: &HashMap<String, Expr>) -> Expr {
             let head = render(head, vars);
             let tail = render(tail, vars);
             Cons(Box::new(head), Box::new(tail))
-        }
-        Prefix(op, val) => {
-            let val = render(val, vars);
-            Prefix(*op, Box::new(val))
         }
         Infix(op, lhs, rhs) => {
             let lhs = render(lhs, vars);
@@ -150,12 +124,7 @@ fn validate(pattern: &Expr, template: &Expr) -> Result<()> {
             Variable(k) => {
                 let _ = seen.insert(k.to_string());
             }
-            Cons(head, tail) => {
-                collect(head, seen);
-                collect(tail, seen);
-            }
-            Prefix(_, val) => collect(val, seen),
-            Infix(_, lhs, rhs) => {
+            Infix(_, lhs, rhs) | Cons(lhs, rhs) => {
                 collect(lhs, seen);
                 collect(rhs, seen);
             }
@@ -170,12 +139,7 @@ fn validate(pattern: &Expr, template: &Expr) -> Result<()> {
                     bail!("unknown key: {}", v)
                 }
             }
-            Cons(head, tail) => {
-                check(head, seen)?;
-                return check(tail, seen);
-            }
-            Prefix(_, val) => check(val, seen)?,
-            Infix(_, lhs, rhs) => {
+            Infix(_, lhs, rhs) | Cons(lhs, rhs) => {
                 check(lhs, seen)?;
                 return check(rhs, seen);
             }
@@ -187,25 +151,6 @@ fn validate(pattern: &Expr, template: &Expr) -> Result<()> {
     let mut seen = HashSet::new();
     collect(pattern, &mut seen);
     check(template, &seen)
-}
-
-impl TryFrom<Expr> for Mapping {
-    type Error = anyhow::Error;
-
-    fn try_from(value: Expr) -> Result<Self> {
-        use Expr::*;
-        match value {
-            Prefix(Op::Not, expr) => {
-                expr.validate()?;
-                Mapping::new(*expr, Bool(false))
-            }
-            Infix(Op::Equals, lhs, rhs) => Mapping::new(*lhs, *rhs),
-            _ => {
-                value.validate()?;
-                Mapping::new(value, Bool(true))
-            }
-        }
-    }
 }
 
 impl std::fmt::Display for Mapping {

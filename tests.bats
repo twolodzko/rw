@@ -9,21 +9,33 @@ BIN='./rw'
 
 @test "examples/algebra.rw" {
    run $BIN examples/algebra.rw
+   for line in "${lines[@]}"; do
+      [ "$line" = "ok" ]
+   done
    [ "$status" -eq 0 ]
 }
 
 @test "examples/peano.rw" {
    run $BIN examples/peano.rw
+   for line in "${lines[@]}"; do
+      [ "$line" = "ok" ]
+   done
    [ "$status" -eq 0 ]
 }
 
 @test "examples/lists.rw" {
    run $BIN examples/lists.rw
+   for line in "${lines[@]}"; do
+      [ "$line" = "ok" ]
+   done
    [ "$status" -eq 0 ]
 }
 
 @test "examples/rules.rw" {
    run $BIN examples/rules.rw
+   for line in "${lines[@]}"; do
+      [ "$line" = "ok" ]
+   done
    [ "$status" -eq 0 ]
 }
 
@@ -34,27 +46,42 @@ BIN='./rw'
 
 @test "examples/operators.rw" {
    run $BIN examples/operators.rw
+   for line in "${lines[@]}"; do
+      [ "$line" = "ok" ]
+   done
    [ "$status" -eq 0 ]
 }
 
 @test "examples/logic.rw" {
    run $BIN examples/logic.rw
+   for line in "${lines[@]}"; do
+      [ "$line" = "ok" ]
+   done
    [ "$status" -eq 0 ]
 }
 
 @test "examples/functions.rw" {
    run $BIN examples/functions.rw
+   for line in "${lines[@]}"; do
+      [ "$line" = "ok" ]
+   done
+   [ "$status" -eq 0 ]
+}
+
+@test "examples/magma.rw" {
+   run $BIN examples/magma.rw
+   for line in "${lines[@]}"; do
+      [ "$line" = "ok" ]
+   done
    [ "$status" -eq 0 ]
 }
 
 @test "examples/imports/main.rw" {
    run $BIN examples/imports/main.rw
+   for line in "${lines[@]}"; do
+      [ "$line" = "ok" ]
+   done
    [ "$status" -eq 0 ]
-}
-
-@test "Failed assertion" {
-   run $BIN <(echo "assert false")
-   [ "$status" -eq 1 ]
 }
 
 @test "wildcard" {

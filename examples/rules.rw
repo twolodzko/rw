@@ -1,8 +1,8 @@
 
-let b
-let a and c
+let b => ok
+let a and c => ok
 
 let $A and $B => $B and $A
-let $A and true => $A
+let $A and ok => $A
 
-assert a and (b and c)
+rewrite a and (b and c)

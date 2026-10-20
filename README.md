@@ -1,14 +1,7 @@
 # rw
 
 rw is a simple language using an rewriting engine and unification for term evaluation.
-The language lets you define facts such as
-
-```test
-let a
-let not b
-```
-
-for `a` being true and `b` being false. You can also define rewriting rules
+The language lets you define rewriting rules
 
 ```text
 let a => c
@@ -17,7 +10,7 @@ let $A + 0 => $A
 
 for replacing every `a` with `c` and a templated rule replacing occurrences of
 `<something> + 0` with `<something>`. The `a => b` mapping is unidirectional,
-for bidirectional mapping use `a = b`. Variable names in rewriting rules 
+for bidirectional mapping use `a <=> b`. Variable names in rewriting rules
 start with "$", "_" is a wildcard that can replace anything else in the pattern.
 
 Syntactic sugar can be used for defining functions mapping different inputs
@@ -26,7 +19,7 @@ to outputs, for example:
 ```text
 let nonzero {
   0 => false
-  $A => true
+  ~0 => true
 }
 
 rewrite nonzero 5
@@ -37,26 +30,23 @@ The rewriting rules can be evaluated using `rewrite`. The rules are applied
 to the given query until no more simplifications are possible. The result
 of the simplification is printed.
 
-The `assert` command simplifies the query and checks if the result is logically
-true, failing with an error if the check failed.
-
 ```text
 infix != 10
 let $A != $B => not ($A = $B)
 
-assert true != false
+rewrite true != false
 ```
 
 As shown in the example above, user can define their own operators using
-`prefix <name> <precedence>` and `infix <name> <precedence>`. The actions
-assigned to operators can be defined using rewriting rules. Rewriting
-rules can serve as function definitions.
+`infix <name> <precedence>`. The actions assigned to operators can be defined
+using rewriting rules. Rewriting rules can serve as function definitions.
 
 The language supports the following data types:
 
-* `true` and `false` booleans
-* literals like `a`, `Foo`, `42`, or `"hello, world!"`
+* literals like `a`, `Foo`, `42`, `true`, or `"hello, world!"`
 * lists `a b c` which technically are cons pairs, as in lisp `(a (b c))`
+
+Lists can be used to imitate behavior of functions, prefix operators, etc.
 
 ## Resources
 

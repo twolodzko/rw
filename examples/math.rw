@@ -3,7 +3,6 @@ infix + 100
 infix - 100
 infix * 110
 infix / 110
-prefix - 150
 
 let $A + 0 => $A
 let $A + (-$B) => $A - $B

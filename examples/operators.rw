@@ -1,5 +1,10 @@
-
+infix = 10
 infix != 10
+
+let true => ok
+let not true => false
+let not false => true
+let true = false => false
 let $A != $B => not ($A = $B)
 
-assert true != false
+rewrite true != false

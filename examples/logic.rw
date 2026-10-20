@@ -1,5 +1,7 @@
 
-prefix ! 100
+infix = 10
+let $A = $A => ok
+
 infix == 50
 infix || 60
 infix && 70
@@ -19,7 +21,7 @@ let $A || T => T
 
 let b => T
 let a => T
-let b = a
+let a <=> b
 let c => F
 
-assert !(!a) && (a || !b) && (a == b) && !(a && c) = T
+rewrite !(!a) && (a || !b) && (a == b) && !(a && c) = T

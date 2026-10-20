@@ -1,0 +1,25 @@
+# rock, paper, scissors game is an example of a magma: commutative but not associative
+# https://en.wikipedia.org/wiki/Commutative_magma
+
+infix . 100
+infix = 0
+
+let $A = $A => ok
+
+let r . r => r
+let r . p => p
+let r . s => r
+let p . r => p
+let p . p => p
+let p . s => s
+let s . r => r
+let s . p => s
+let s . s => s
+
+let $A . $B => $B . $A
+
+rewrite r . p = p
+rewrite s . s = s
+rewrite r . p . s = r
+rewrite r . (p . s) = r
+rewrite (r . p) . s = s

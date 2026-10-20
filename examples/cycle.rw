@@ -4,4 +4,7 @@ let c => d
 let d => e
 let e => a
 
-assert a = e
+infix = 10
+let $A = $A => $A
+
+rewrite a = e

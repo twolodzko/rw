@@ -1,26 +1,35 @@
-use crate::{mapping::Mapping, operators::Op};
+use crate::operators;
 use anyhow::{Result, bail};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
-    NewPrefix(String, u8),
-    NewInfix(String, u8),
-    Let(Expr),
-    LetMap(Mapping),
+    NewOp(String, u8),
+    LetEquals(Expr, Expr),
+    LetMap(Expr, Expr),
     Rewrite(Expr),
-    EvalTo(String, Expr),
-    Assert(Expr),
     Load(String),
+}
+
+impl std::fmt::Display for Statement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use Statement::*;
+        match self {
+            NewOp(s, p) => write!(f, "infix {} {}", s, p),
+            LetEquals(l, r) => write!(f, "let {} <=> {}", l, r),
+            LetMap(l, r) => write!(f, "let {} => {}", l, r),
+            Rewrite(e) => write!(f, "rewrite {}", e),
+            Load(s) => write!(f, "load {}", s),
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum Expr {
     Wildcard,
-    Bool(bool),
+    Not(Box<Expr>),
     Literal(String),
     Cons(Box<Expr>, Box<Expr>),
-    Prefix(Op, Box<Expr>),
-    Infix(Op, Box<Expr>, Box<Expr>),
+    Infix(usize, Box<Expr>, Box<Expr>),
     Variable(String),
 }
 
@@ -28,9 +37,9 @@ impl Expr {
     pub(crate) fn complexity(&self) -> usize {
         use Expr::*;
         match self {
-            Wildcard | Bool(_) | Literal(_) | Variable(_) => 1,
+            Wildcard | Literal(_) | Variable(_) => 1,
+            Not(inner) => 1 + inner.complexity(),
             Cons(head, tail) => head.complexity() + tail.complexity(),
-            Prefix(_, val) => 1 + val.complexity(),
             Infix(_, lhs, rhs) => 1 + lhs.complexity() + rhs.complexity(),
         }
     }
@@ -38,10 +47,10 @@ impl Expr {
     pub(crate) fn is_constant(&self) -> bool {
         use Expr::*;
         match self {
-            Bool(_) | Literal(_) | Wildcard => true,
+            Literal(_) | Wildcard => true,
             Variable(_) => false,
+            Not(inner) => inner.is_constant(),
             Cons(head, tail) => head.is_constant() && tail.is_constant(),
-            Prefix(_, val) => val.is_constant(),
             Infix(_, lhs, rhs) => lhs.is_constant() && rhs.is_constant(),
         }
     }
@@ -55,42 +64,28 @@ impl Expr {
     }
 }
 
-impl std::fmt::Display for Statement {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use Statement::*;
-        match self {
-            NewPrefix(s, p) => write!(f, "prefix {} {}", s, p),
-            NewInfix(s, p) => write!(f, "infix {} {}", s, p),
-            Let(e) => write!(f, "let {}", e),
-            LetMap(m) => write!(f, "let {}", m),
-            Rewrite(e) => write!(f, "rewrite {}", e),
-            EvalTo(k, e) => write!(f, "let {} := {}", k, e),
-            Assert(e) => write!(f, "assert {}", e),
-            Load(s) => write!(f, "load {}", s),
-        }
-    }
-}
-
 impl std::fmt::Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use Expr::*;
         fn is_atom(expr: &Expr) -> bool {
-            matches!(expr, Literal(_) | Bool(_) | Variable(_) | Wildcard)
+            matches!(expr, Literal(_) | Variable(_) | Wildcard)
         }
 
         match self {
             Wildcard => write!(f, "_"),
-            Bool(v) => write!(f, "{}", v),
+            Not(v) if is_atom(v) => write!(f, "~{}", v),
+            Not(v) => write!(f, "~({})", v),
             Literal(v) => write!(f, "{}", v),
             Cons(h, t) => write!(f, "{} {}", h, t),
-            Prefix(op, e) if is_atom(e) => write!(f, "{} {}", op, e),
-            Prefix(op, e) => write!(f, "{} ({})", op, e),
-            Infix(op, a, b) => match (is_atom(a), is_atom(b)) {
-                (true, false) => write!(f, "{} {} ({})", a, op, b),
-                (false, true) => write!(f, "({}) {} {}", a, op, b),
-                (false, false) => write!(f, "({}) {} ({})", a, op, b),
-                (true, true) => write!(f, "{} {} {}", a, op, b),
-            },
+            Infix(op, a, b) => {
+                let op = operators::name(*op);
+                match (is_atom(a), is_atom(b)) {
+                    (true, false) => write!(f, "{} {} ({})", a, op, b),
+                    (false, true) => write!(f, "({}) {} {}", a, op, b),
+                    (false, false) => write!(f, "({}) {} ({})", a, op, b),
+                    (true, true) => write!(f, "{} {} {}", a, op, b),
+                }
+            }
             Variable(v) => write!(f, "${}", v),
         }
     }
@@ -100,23 +95,25 @@ impl std::fmt::Debug for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         fn is_atom(expr: &Expr) -> bool {
             use Expr::*;
-            matches!(expr, Literal(_) | Bool(_) | Variable(_))
+            matches!(expr, Literal(_) | Variable(_))
         }
 
         use Expr::*;
         match self {
             Wildcard => write!(f, "_"),
-            Bool(v) => write!(f, "{}", v),
+            Not(v) if is_atom(v) => write!(f, "~{}", v),
+            Not(v) => write!(f, "~({})", v),
             Literal(v) => write!(f, "{}", v),
             Cons(h, t) => write!(f, "({:?} {:?})", h, t),
-            Prefix(op, e) if is_atom(e) => write!(f, "{} {:?}", op, e),
-            Prefix(op, e) => write!(f, "{} ({:?})", op, e),
-            Infix(op, a, b) => match (is_atom(a), is_atom(b)) {
-                (true, false) => write!(f, "{:?} {} ({:?})", a, op, b),
-                (false, true) => write!(f, "({:?}) {} {:?}", a, op, b),
-                (false, false) => write!(f, "({:?}) {} ({:?})", a, op, b),
-                (true, true) => write!(f, "{:?} {} {:?}", a, op, b),
-            },
+            Infix(op, a, b) => {
+                let op = operators::name(*op);
+                match (is_atom(a), is_atom(b)) {
+                    (true, false) => write!(f, "{:?} {} ({:?})", a, op, b),
+                    (false, true) => write!(f, "({:?}) {} {:?}", a, op, b),
+                    (false, false) => write!(f, "({:?}) {} ({:?})", a, op, b),
+                    (true, true) => write!(f, "{:?} {} {:?}", a, op, b),
+                }
+            }
             Variable(v) => write!(f, "${}", v),
         }
     }

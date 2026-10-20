@@ -1,8 +1,11 @@
 
+infix = 10
+let $A = $A => ok
+
 infix . 100
 let $A . $B => $A $B
 let head ($H $T) => $H
 let tail ($H $T) => $T
 
-assert head (a . b . c . d) = a
-assert tail (a . b . c . d) = b c d
+rewrite head (a . b . c . d) = a
+rewrite tail (a . b . c . d) = b c d

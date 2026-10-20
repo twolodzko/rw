@@ -13,8 +13,8 @@ pub(crate) enum Token {
     Variable(String),
     /// =>
     MapsTo,
-    /// :=
-    SaveTo,
+    /// =
+    Equals,
     /// {
     LBracket,
     /// }
@@ -25,6 +25,8 @@ pub(crate) enum Token {
     RParenth,
     /// _
     Wildcard,
+    /// ~
+    Not,
     /// \n
     Newline,
     /// ;
@@ -106,6 +108,10 @@ impl<R: Reader> Tokenizer<R> {
                     self.reader.skip();
                     return Ok(Some(Wildcard));
                 }
+                '~' => {
+                    self.reader.skip();
+                    return Ok(Some(Not));
+                }
                 '"' => {
                     return Ok(Some(String(self.read_string()?)));
                 }
@@ -123,7 +129,7 @@ impl<R: Reader> Tokenizer<R> {
                     let s = self.read_symbol_name()?;
                     return Ok(Some(match s.as_str() {
                         "=>" => MapsTo,
-                        ":=" => SaveTo,
+                        "<=>" => Equals,
                         _ => Keyword(s),
                     }));
                 }
@@ -217,7 +223,7 @@ impl std::fmt::Display for Token {
             Variable(s) => write!(f, "${}", s),
             String(s) => write!(f, "\"{}\"", s),
             MapsTo => write!(f, "=>"),
-            SaveTo => write!(f, ":="),
+            Equals => write!(f, "="),
             LBracket => write!(f, "{{"),
             RBracket => write!(f, "}}"),
             LParenth => write!(f, "("),
@@ -225,6 +231,7 @@ impl std::fmt::Display for Token {
             Newline => write!(f, r"\n"),
             Semicolon => write!(f, ";"),
             Wildcard => write!(f, "_"),
+            Not => write!(f, "~"),
         }
     }
 }
@@ -266,7 +273,7 @@ mod tests {
 
     #[test]
     fn tokenize_many() {
-        let reader = StringReader::from("let 2 + 2 = 4\neval 2 + 2");
+        let reader = StringReader::from("let 2 + 2 <=> 4\nrewrite 2 + 2");
         let tokenizer = &mut Tokenizer::<StringReader>::new(reader);
         let mut result = Vec::new();
         while let Some(val) = tokenizer.next().unwrap() {
@@ -277,10 +284,10 @@ mod tests {
             Number("2".to_string()),
             Keyword("+".to_string()),
             Number("2".to_string()),
-            Keyword("=".to_string()),
+            Equals,
             Number("4".to_string()),
             Newline,
-            Keyword("eval".to_string()),
+            Keyword("rewrite".to_string()),
             Number("2".to_string()),
             Keyword("+".to_string()),
             Number("2".to_string()),
