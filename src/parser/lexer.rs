@@ -74,9 +74,17 @@ impl<R: Reader> Parser<R> {
                                 // {
                                 LBracket => {
                                     while let Some(t) = self.tokenizer.peek()? {
-                                        if let Newline = t {
-                                            self.tokenizer.skip();
-                                            continue;
+                                        match t {
+                                            Newline => {
+                                                self.tokenizer.skip();
+                                                continue;
+                                            }
+                                            RBracket => {
+                                                self.tokenizer.skip();
+                                                self.end_of_line()?;
+                                                return Ok(self.buffer.pop_front());
+                                            }
+                                            _ => {}
                                         }
 
                                         let tail = self.expr(false)?;
@@ -95,21 +103,6 @@ impl<R: Reader> Parser<R> {
                                                 self.buffer.push_back(LetEquals(lhs, rhs));
                                             }
                                             _ => bail!("unexpected token: {}", t),
-                                        }
-
-                                        if let Some(Semicolon) = self.tokenizer.peek()? {
-                                            self.tokenizer.skip();
-                                        }
-                                        while let Some(t) = self.tokenizer.peek()? {
-                                            match t {
-                                                Newline => self.tokenizer.skip(),
-                                                RBracket => {
-                                                    self.tokenizer.skip();
-                                                    self.end_of_line()?;
-                                                    return Ok(self.buffer.pop_front());
-                                                }
-                                                _ => break,
-                                            }
                                         }
                                     }
                                     bail!("unexpected end of input")
@@ -220,7 +213,7 @@ impl<R: Reader> Parser<R> {
 
     fn end_of_line(&mut self) -> Result<()> {
         if let Some(t) = self.tokenizer.next()?
-            && !matches!(t, Token::Newline | Token::Semicolon)
+            && !matches!(t, Token::Newline)
         {
             bail!("unexpected token: {}", t)
         }
@@ -241,7 +234,7 @@ impl Token {
         // "(" is parsed as delimiter of expression
         matches!(
             self,
-            Newline | Semicolon | LBracket | RBracket | RParenth | MapsTo | Equals
+            Newline | LBracket | RBracket | RParenth | MapsTo | Equals
         )
     }
 }

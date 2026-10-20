@@ -29,8 +29,6 @@ pub(crate) enum Token {
     Not,
     /// \n
     Newline,
-    /// ;
-    Semicolon,
 }
 
 pub(crate) struct Tokenizer<R: Reader> {
@@ -74,10 +72,6 @@ impl<R: Reader> Tokenizer<R> {
                 '\n' => {
                     self.reader.skip();
                     return Ok(Some(Newline));
-                }
-                ';' => {
-                    self.reader.skip();
-                    return Ok(Some(Semicolon));
                 }
                 // skip whitespace
                 c if c.is_whitespace() => self.reader.skip(),
@@ -229,7 +223,6 @@ impl std::fmt::Display for Token {
             LParenth => write!(f, "("),
             RParenth => write!(f, ")"),
             Newline => write!(f, r"\n"),
-            Semicolon => write!(f, ";"),
             Wildcard => write!(f, "_"),
             Not => write!(f, "~"),
         }

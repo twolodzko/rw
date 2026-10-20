@@ -101,8 +101,8 @@ impl std::fmt::Debug for Expr {
         use Expr::*;
         match self {
             Wildcard => write!(f, "_"),
-            Not(v) if is_atom(v) => write!(f, "~{}", v),
-            Not(v) => write!(f, "~({})", v),
+            Not(v) if is_atom(v) => write!(f, "~{:?}", v),
+            Not(v) => write!(f, "~({:?})", v),
             Literal(v) => write!(f, "{}", v),
             Cons(h, t) => write!(f, "({:?} {:?})", h, t),
             Infix(op, a, b) => {
