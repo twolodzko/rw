@@ -11,4 +11,4 @@
    let $A:(a|b|c) => ok
    ```
 
-   `<var>:<atom>`
+   `<var>:<atom>` where `$A:_` is the same as `$A`, or `($A $B:$A)` is the same as `($A $A)` but with additional variable name created
