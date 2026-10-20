@@ -23,6 +23,8 @@ pub(crate) enum Token {
     LParenth,
     /// )
     RParenth,
+    /// :
+    Colon,
     /// _
     Wildcard,
     /// ~
@@ -105,6 +107,10 @@ impl<R: Reader> Tokenizer<R> {
                 '~' => {
                     self.reader.skip();
                     return Ok(Some(Not));
+                }
+                ':' => {
+                    self.reader.skip();
+                    return Ok(Some(Colon));
                 }
                 '"' => {
                     return Ok(Some(String(self.read_string()?)));
@@ -206,7 +212,7 @@ impl<R: Reader> Tokenizer<R> {
 }
 
 fn is_special(c: char) -> bool {
-    matches!(c, '(' | ')' | '{' | '}' | '$' | '#' | ';')
+    matches!(c, '(' | ')' | '{' | '}' | '$' | '#' | ':' | '~' | '_')
 }
 
 impl std::fmt::Display for Token {
@@ -225,6 +231,7 @@ impl std::fmt::Display for Token {
             Newline => write!(f, r"\n"),
             Wildcard => write!(f, "_"),
             Not => write!(f, "~"),
+            Colon => write!(f, ":"),
         }
     }
 }

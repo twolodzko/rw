@@ -39,13 +39,21 @@ BIN='./rw'
    [ "$status" -eq 0 ]
 }
 
-@test "examples/variables.rw" {
-   run $BIN examples/variables.rw
+@test "examples/mappings.rw" {
+   run $BIN examples/mappings.rw
    [ "$status" -eq 0 ]
 }
 
 @test "examples/operators.rw" {
    run $BIN examples/operators.rw
+   for line in "${lines[@]}"; do
+      [ "$line" = "ok" ]
+   done
+   [ "$status" -eq 0 ]
+}
+
+@test "examples/patterns.rw" {
+   run $BIN examples/patterns.rw
    for line in "${lines[@]}"; do
       [ "$line" = "ok" ]
    done

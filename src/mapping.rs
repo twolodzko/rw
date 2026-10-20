@@ -82,8 +82,19 @@ fn is_match(pattern: &Expr, value: &Expr, vars: &mut HashMap<String, Expr>) -> b
         (Not(n), v) | (v, Not(n)) => !is_match(n, v, &mut vars.clone()),
         (Literal(l), Literal(r)) => l == r,
         (Cons(lh, lt), Cons(rh, rt)) => is_match(lh, rh, vars) && is_match(lt, rt, vars),
-        (Variable(k), v) => {
-            debug_assert!(!matches!(v, Variable(_)));
+        (Variable(k, c), v) if let Wildcard = c.as_ref() => {
+            debug_assert!(!matches!(v, Variable(_, _)));
+            if let Some(old) = vars.insert(k.to_owned(), v.clone()) {
+                old == *v
+            } else {
+                true
+            }
+        }
+        (Variable(k, c), v) => {
+            debug_assert!(!matches!(v, Variable(_, _)));
+            if !is_match(c.as_ref(), v, vars) {
+                return false;
+            }
             if let Some(old) = vars.insert(k.to_owned(), v.clone()) {
                 old == *v
             } else {
@@ -101,7 +112,7 @@ fn render(template: &Expr, vars: &HashMap<String, Expr>) -> Expr {
     use Expr::*;
     match template {
         // unwrap is ok because we already check for uninitialized variables in Mapping::new
-        Variable(k) => vars.get(k).unwrap().clone(),
+        Variable(k, _) => vars.get(k).unwrap().clone(),
         Cons(head, tail) => {
             let head = render(head, vars);
             let tail = render(tail, vars);
@@ -121,7 +132,8 @@ fn validate(pattern: &Expr, template: &Expr) -> Result<()> {
 
     fn collect(expr: &Expr, seen: &mut HashSet<String>) {
         match expr {
-            Variable(k) => {
+            Variable(k, c) => {
+                collect(c, seen);
                 let _ = seen.insert(k.to_string());
             }
             Infix(_, lhs, rhs) | Cons(lhs, rhs) => {
@@ -134,10 +146,11 @@ fn validate(pattern: &Expr, template: &Expr) -> Result<()> {
 
     fn check(expr: &Expr, seen: &HashSet<String>) -> Result<()> {
         match expr {
-            v @ Variable(k) => {
+            v @ Variable(k, c) => {
                 if !seen.contains(k) {
                     bail!("unknown key: {}", v)
                 }
+                check(c, seen)?;
             }
             Infix(_, lhs, rhs) | Cons(lhs, rhs) => {
                 check(lhs, seen)?;

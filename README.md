@@ -5,13 +5,21 @@ The language lets you define rewriting rules
 
 ```text
 let a => c
+```
+
+for replacing every `a` with `c`, or a templated rule
+
+```text
 let $A + 0 => $A
 ```
 
-for replacing every `a` with `c` and a templated rule replacing occurrences of
-`<something> + 0` with `<something>`. The `a => b` mapping is unidirectional,
-for bidirectional mapping use `a <=> b`. Variable names in rewriting rules
-start with "$", "_" is a wildcard that can replace anything else in the pattern.
+replacing occurrences of `$A + 0` with `$A`, where `$A` is a variable.
+The `a => b` mapping is unidirectional, for bidirectional mapping use `a <=> b`.
+Variable names in rewriting rules start with "$". `_` is a wildcard that can
+replace anything else in the pattern. Variables can also be matched using patterns,
+for example `$A:(_ 0)` would match `$A` only to the list where the second element
+is zero. The pattern elements can be negated using ``~``, for example ``~0`` matches
+anything but zero.
 
 Syntactic sugar can be used for defining functions mapping different inputs
 to outputs, for example:

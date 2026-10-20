@@ -185,9 +185,17 @@ impl<R: Reader> Parser<R> {
             match t {
                 Keyword(s) | Number(s) | String(s) => return Ok(Expr::Literal(s)),
                 Wildcard => return Ok(Expr::Wildcard),
-                Variable(s) => return Ok(Expr::Variable(s)),
+                Variable(s) => {
+                    let cond = if let Some(Colon) = self.tokenizer.peek()? {
+                        self.tokenizer.skip();
+                        self.atom()?
+                    } else {
+                        Expr::Wildcard
+                    };
+                    return Ok(Expr::Variable(s, Box::new(cond)));
+                }
                 Not => {
-                    let expr = self.expr(false)?;
+                    let expr = self.atom()?;
                     if let Expr::Not(inner) = expr {
                         return Ok(*inner);
                     }
@@ -259,8 +267,8 @@ mod tests {
 
     #[test_case("let $a => $a", vec![
         LetMap(
-            Variable("a".to_string()),
-            Variable("a".to_string())),
+            Variable("a".to_string(), Box::new(Wildcard)),
+            Variable("a".to_string(), Box::new(Wildcard))),
      ];
      "simple mapping")]
     fn parse(input: &str, expected: Vec<Statement>) {

@@ -30,14 +30,14 @@ pub enum Expr {
     Literal(String),
     Cons(Box<Expr>, Box<Expr>),
     Infix(usize, Box<Expr>, Box<Expr>),
-    Variable(String),
+    Variable(String, Box<Expr>),
 }
 
 impl Expr {
     pub(crate) fn complexity(&self) -> usize {
         use Expr::*;
         match self {
-            Wildcard | Literal(_) | Variable(_) => 1,
+            Wildcard | Literal(_) | Variable(_, _) => 1,
             Not(inner) => 1 + inner.complexity(),
             Cons(head, tail) => head.complexity() + tail.complexity(),
             Infix(_, lhs, rhs) => 1 + lhs.complexity() + rhs.complexity(),
@@ -48,7 +48,7 @@ impl Expr {
         use Expr::*;
         match self {
             Literal(_) | Wildcard => true,
-            Variable(_) => false,
+            Variable(_, _) => false,
             Not(inner) => inner.is_constant(),
             Cons(head, tail) => head.is_constant() && tail.is_constant(),
             Infix(_, lhs, rhs) => lhs.is_constant() && rhs.is_constant(),
@@ -67,10 +67,6 @@ impl Expr {
 impl std::fmt::Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use Expr::*;
-        fn is_atom(expr: &Expr) -> bool {
-            matches!(expr, Literal(_) | Variable(_) | Wildcard)
-        }
-
         match self {
             Wildcard => write!(f, "_"),
             Not(v) if is_atom(v) => write!(f, "~{}", v),
@@ -86,18 +82,15 @@ impl std::fmt::Display for Expr {
                     (true, true) => write!(f, "{} {} {}", a, op, b),
                 }
             }
-            Variable(v) => write!(f, "${}", v),
+            Variable(v, c) if let Wildcard = c.as_ref() => write!(f, "${}", v),
+            Variable(v, c) if is_atom(c) => write!(f, "${}:({})", v, c),
+            Variable(v, c) => write!(f, "${}:{}", v, c),
         }
     }
 }
 
 impl std::fmt::Debug for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        fn is_atom(expr: &Expr) -> bool {
-            use Expr::*;
-            matches!(expr, Literal(_) | Variable(_))
-        }
-
         use Expr::*;
         match self {
             Wildcard => write!(f, "_"),
@@ -114,7 +107,14 @@ impl std::fmt::Debug for Expr {
                     (true, true) => write!(f, "{:?} {} {:?}", a, op, b),
                 }
             }
-            Variable(v) => write!(f, "${}", v),
+            Variable(v, c) if let Wildcard = c.as_ref() => write!(f, "${}", v),
+            Variable(v, c) if is_atom(c) => write!(f, "${}:({:?})", v, c),
+            Variable(v, c) => write!(f, "${}:{:?}", v, c),
         }
     }
+}
+
+fn is_atom(expr: &Expr) -> bool {
+    use Expr::*;
+    matches!(expr, Literal(_) | Variable(_, _) | Wildcard | Not(_))
 }

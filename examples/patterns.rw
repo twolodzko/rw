@@ -1,0 +1,27 @@
+
+infix = 10
+let $A = $A => ok
+
+let any $A:_ => $A
+rewrite any X = X
+
+let nz $A:~0 => nonzero
+let nz $A:0 => zero
+
+rewrite nz 0 = zero
+rewrite nz 5 = nonzero
+
+let fix ($A:~(_ _) $B) => ($A $B)
+let fix (($A $B) $C) => fix ($A ($B $C))
+
+rewrite fix (((1 2) 3) 4) = (1 2 3 4)
+
+let dup $A:(_ $B) => fix ($A $B)
+
+rewrite dup (1 2) = (1 2 2)
+
+let rev' $A:~(_ _) => $A
+let rev' ($A $B) => ((rev' $B) $A)
+let rev $A => (fix (rev' $A))
+
+rewrite rev (4 3 2 1) = (1 2 3 4)
