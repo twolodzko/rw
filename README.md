@@ -7,19 +7,19 @@ The language lets you define rewriting rules
 let a => c
 ```
 
-for replacing every `a` with `c`, or a templated rule
+for replacing a pattern `a` with a template `c`. The `a => b` mapping is unidirectional,
+for bidirectional mapping use `a <=> b`. More advanced patterns are also possible:
 
-```text
-let $A + 0 => $A
-```
-
-replacing occurrences of `$A + 0` with `$A`, where `$A` is a variable.
-The `a => b` mapping is unidirectional, for bidirectional mapping use `a <=> b`.
-Variable names in rewriting rules start with "$". `_` is a wildcard that can
-replace anything else in the pattern. Variables can also be matched using patterns,
-for example `$A:(_ 0)` would match `$A` only to the list where the second element
-is zero. The pattern elements can be negated using ``~``, for example ``~0`` matches
-anything but zero.
+* `_` is a wildcard pattern that matches anything.
+* `~0` would match non-zeros. `~` would negate any pattern following it.
+* `$A` is a pattern variable, it matches anything and then every occurrence
+  of the same pattern variable in the template is replaced with the matched value.
+  Pattern variable names always start with `$`.
+* Pattern variables can be match using patterns, for example `$A:(_ 0)`
+  would match `$A` only to the list where the second element is zero. The patterns
+  are attached to the variables using `:`. They can also consist of other
+  variables, for example `$A:($B 0)` would be similar to the previous pattern, but
+  would save the head of the list as `$B`.
 
 Syntactic sugar can be used for defining functions mapping different inputs
 to outputs, for example:
