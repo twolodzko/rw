@@ -1,11 +1,12 @@
 use crate::types::Expr;
-use anyhow::{Result, bail};
+use anyhow::{Ok, Result, bail};
 use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Mapping {
-    pattern: Expr,
-    template: Expr,
+    pub(crate) pattern: Expr,
+    pub(crate) template: Expr,
 }
 
 impl Mapping {
@@ -32,14 +33,14 @@ impl Mapping {
                 for s in self
                     .apply(head)
                     .into_iter()
-                    .map(|v| Cons(Box::new(v), tail.to_owned()))
+                    .map(|v| Cons(Rc::new(v), tail.to_owned()))
                 {
                     acc.push(s)
                 }
                 for s in self
                     .apply(tail)
                     .into_iter()
-                    .map(|v| Cons(head.to_owned(), Box::new(v)))
+                    .map(|v| Cons(head.to_owned(), Rc::new(v)))
                 {
                     acc.push(s)
                 }
@@ -48,19 +49,33 @@ impl Mapping {
                 for s in self
                     .apply(lhs)
                     .into_iter()
-                    .map(|v| Infix(*op, Box::new(v), rhs.to_owned()))
+                    .map(|v| Infix(*op, Rc::new(v), rhs.to_owned()))
                 {
                     acc.push(s)
                 }
                 for s in self
                     .apply(rhs)
                     .into_iter()
-                    .map(|v| Infix(*op, lhs.to_owned(), Box::new(v)))
+                    .map(|v| Infix(*op, lhs.to_owned(), Rc::new(v)))
                 {
                     acc.push(s)
                 }
             }
-            _ => {}
+            Not(expr) => {
+                for e in self.apply(expr) {
+                    acc.push(Not(Rc::new(e)))
+                }
+            }
+            Or(set) => {
+                for (i, e) in set.iter().enumerate() {
+                    for v in self.apply(e) {
+                        let mut copy = set.clone();
+                        copy[i] = v;
+                        acc.push(Expr::new_or(copy));
+                    }
+                }
+            }
+            Wildcard | Literal(_) | Variable(_, _) => {}
         }
         acc
     }
@@ -72,6 +87,42 @@ impl Mapping {
         } else {
             None
         }
+    }
+
+    /// If it is possible to merge the new mapping with this mapping do so and return a success status
+    pub(crate) fn try_merge(&mut self, other: &Mapping) -> bool {
+        if !other.pattern.is_constant() || !other.template.is_constant() {
+            return false;
+        }
+        if self.template == other.template {
+            use Expr::*;
+            match (&mut self.pattern, &other.pattern) {
+                (Wildcard, _) => {}
+                (_, Wildcard) => self.pattern = Wildcard,
+                // merge sets
+                (Or(this), Or(other)) => {
+                    for p in other {
+                        if !this.contains(p) {
+                            this.push(p.clone());
+                        }
+                    }
+                }
+                (Or(this), other) => {
+                    if !this.contains(other) {
+                        this.push(other.clone());
+                    }
+                }
+                (this, Or(other)) => {
+                    let mut acc = vec![this.clone()];
+                    acc.extend_from_slice(other);
+                    self.pattern = Expr::new_or(acc)
+                }
+                // create new set
+                _ => self.pattern = Expr::new_or(vec![self.pattern.clone(), other.pattern.clone()]),
+            }
+            return true;
+        }
+        false
     }
 }
 
@@ -104,6 +155,16 @@ fn is_match(pattern: &Expr, value: &Expr, vars: &mut HashMap<String, Expr>) -> b
         (Infix(lo, la, lb), Infix(ro, ra, rb)) => {
             lo == ro && is_match(la, ra, vars) && is_match(lb, rb, vars)
         }
+        (Or(set), _) => {
+            for p in set {
+                let copy = vars.clone();
+                if is_match(p, value, vars) {
+                    return true;
+                }
+                *vars = copy;
+            }
+            false
+        }
         _ => false,
     }
 }
@@ -116,14 +177,16 @@ fn render(template: &Expr, vars: &HashMap<String, Expr>) -> Expr {
         Cons(head, tail) => {
             let head = render(head, vars);
             let tail = render(tail, vars);
-            Cons(Box::new(head), Box::new(tail))
+            Cons(Rc::new(head), Rc::new(tail))
         }
         Infix(op, lhs, rhs) => {
             let lhs = render(lhs, vars);
             let rhs = render(rhs, vars);
-            Infix(*op, Box::new(lhs), Box::new(rhs))
+            Infix(*op, Rc::new(lhs), Rc::new(rhs))
         }
-        _ => template.clone(),
+        Or(set) => Expr::new_or(set.iter().map(|e| render(e, vars)).collect()),
+        Not(expr) => Not(Rc::new(render(expr, vars))),
+        Wildcard | Literal(_) => template.clone(),
     }
 }
 
@@ -140,7 +203,9 @@ fn validate(pattern: &Expr, template: &Expr) -> Result<()> {
                 collect(lhs, seen);
                 collect(rhs, seen);
             }
-            _ => {}
+            Not(expr) => collect(expr, seen),
+            Or(set) => set.iter().for_each(|e| collect(e, seen)),
+            Wildcard | Literal(_) => {}
         }
     }
 
@@ -150,15 +215,18 @@ fn validate(pattern: &Expr, template: &Expr) -> Result<()> {
                 if !seen.contains(k) {
                     bail!("unknown key: {}", v)
                 }
-                check(c, seen)?;
+                check(c, seen)
             }
             Infix(_, lhs, rhs) | Cons(lhs, rhs) => {
                 check(lhs, seen)?;
-                return check(rhs, seen);
+                check(rhs, seen)
             }
-            _ => {}
+            Not(expr) => check(expr, seen),
+            Wildcard | Literal(_) => Ok(()),
+            // because or running Expr::expand_or in Context::insert_mapping
+            // OR patterns would not appear in templates
+            Or(_) => unreachable!(),
         }
-        Ok(())
     }
 
     let mut seen = HashSet::new();

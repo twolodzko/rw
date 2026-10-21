@@ -3,25 +3,25 @@ infix = 10
 let $A = $A => ok
 
 infix == 50
-infix || 60
-infix && 70
+infix or 60
+infix and 70
 
 let $A == $A => $A
 let ! T => F
 let ! F => T
 let ! ! $A => $A
-let $A && $B => $B && $A
-let $A && T => $A
-let $A && F => F
-let $A || $B => $B || $A
-let $A || F => $A
-let $A || T => T
-# let !($A && $B) => !$A || !$B
-# let !($A || $B) => !$A && !$B
+let $A and $B => $B and $A
+let $A and T => $A
+let $A and F => F
+let $A or $B => $B or $A
+let $A or F => $A
+let $A or T => T
+# let !($A and $B) => !$A or !$B
+# let !($A or $B) => !$A and !$B
 
 let b => T
 let a => T
 let a <=> b
 let c => F
 
-rewrite !(!a) && (a || !b) && (a == b) && !(a && c) = T
+rewrite !(!a) and (a or !b) and (a == b) and !(a and c) = T

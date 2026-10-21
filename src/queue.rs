@@ -5,7 +5,7 @@ use std::{
     rc::Rc,
 };
 
-#[derive(Eq)]
+#[derive(Eq, Debug)]
 struct Candidate {
     value: Rc<Expr>,
     complexity: usize,
@@ -31,7 +31,7 @@ impl Ord for Candidate {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct Queue {
     items: BinaryHeap<Reverse<Candidate>>,
     seen: HashSet<Rc<Expr>>,
@@ -55,5 +55,9 @@ impl Queue {
 
     pub(crate) fn pop(&mut self) -> Option<Rc<Expr>> {
         self.items.pop().map(|Reverse(c)| c.value)
+    }
+
+    pub(crate) fn len(&self) -> usize {
+        self.items.len()
     }
 }
