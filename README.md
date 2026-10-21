@@ -1,17 +1,18 @@
 # rw
 
-rw is a simple language using an rewriting engine and unification for term evaluation.
-The language lets you define rewriting rules
+rw is a simple language using an rewriting engine and pattern matching for term evaluation.
+The language lets you define rewriting rules like
 
 ```text
-let a => c
+let a => b
 ```
 
-for replacing a pattern `a` with a template `c`. The `a => b` mapping is unidirectional,
+for replacing a pattern `a` with a template `b`. The `a => b` mapping is unidirectional,
 for bidirectional mapping use `a <=> b`. More advanced patterns are also possible:
 
 * `_` is a wildcard pattern that matches anything.
 * `~0` would match non-zeros. `~` would negate any pattern following it.
+* `a|b` matches either `a` or `b`.
 * `$A` is a pattern variable, it matches anything and then every occurrence
   of the same pattern variable in the template is replaced with the matched value.
   Pattern variable names always start with `$`.
