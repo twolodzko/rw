@@ -7,6 +7,12 @@ let a <=> b
 let b <=> c
 let c <=> e
 
+# let c => d
+# let c => e
+# let b => a
+# let a|c => b
+# let d|b|e => c
+
 rewrite a = e
 rewrite a = b
 rewrite a = c

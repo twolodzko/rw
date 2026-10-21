@@ -69,6 +69,7 @@ impl<R: Reader> Parser<R> {
                                 // <=>
                                 Equals => {
                                     let rhs = self.expr(false)?;
+                                    self.end_of_line()?;
                                     return Ok(Some(LetEquals(lhs, rhs)));
                                 }
                                 // {
@@ -124,10 +125,15 @@ impl<R: Reader> Parser<R> {
                         }
                         "load" => {
                             if let Some(String(path)) = self.tokenizer.next()? {
+                                self.end_of_line()?;
                                 return Ok(Some(Load(path)));
                             } else {
                                 bail!("invalid path")
                             }
+                        }
+                        "rules" => {
+                            self.end_of_line()?;
+                            return Ok(Some(Rules));
                         }
                         _ => {}
                     }
@@ -140,7 +146,17 @@ impl<R: Reader> Parser<R> {
     }
 
     fn expr(&mut self, ignore_newline: bool) -> Result<Expr> {
-        self.expr_bp(0, ignore_newline)
+        let mut acc = vec![self.expr_bp(0, ignore_newline)?];
+        while let Some(Token::VBar) = self.tokenizer.peek()? {
+            self.tokenizer.skip();
+            acc.push(self.expr_bp(0, ignore_newline)?);
+        }
+
+        if acc.len() > 1 {
+            Ok(Expr::Or(acc))
+        } else {
+            Ok(acc.pop().unwrap())
+        }
     }
 
     fn expr_bp(&mut self, min_bp: u8, ignore_newline: bool) -> Result<Expr> {
@@ -206,7 +222,7 @@ impl<R: Reader> Parser<R> {
                     self.expect(RParenth)?;
                     return Ok(expr);
                 }
-                _ => {}
+                _ => bail!("unexpected token: {}", t),
             }
         }
         bail!("unexpected end of input")
@@ -242,7 +258,7 @@ impl Token {
         // "(" is parsed as delimiter of expression
         matches!(
             self,
-            Newline | LBracket | RBracket | RParenth | MapsTo | Equals
+            Newline | LBracket | RBracket | RParenth | MapsTo | Equals | VBar
         )
     }
 }

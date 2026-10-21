@@ -8,6 +8,7 @@ pub enum Statement {
     LetMap(Expr, Expr),
     Rewrite(Expr),
     Load(String),
+    Rules,
 }
 
 impl std::fmt::Display for Statement {
@@ -19,6 +20,7 @@ impl std::fmt::Display for Statement {
             LetMap(l, r) => write!(f, "let {} => {}", l, r),
             Rewrite(e) => write!(f, "rewrite {}", e),
             Load(s) => write!(f, "load {}", s),
+            Rules => write!(f, "rules"),
         }
     }
 }
@@ -31,6 +33,7 @@ pub enum Expr {
     Cons(Box<Expr>, Box<Expr>),
     Infix(usize, Box<Expr>, Box<Expr>),
     Variable(String, Box<Expr>),
+    Or(Vec<Expr>),
 }
 
 impl Expr {
@@ -41,9 +44,11 @@ impl Expr {
             Not(inner) => 1 + inner.complexity(),
             Cons(head, tail) => head.complexity() + tail.complexity(),
             Infix(_, lhs, rhs) => 1 + lhs.complexity() + rhs.complexity(),
+            Or(set) => set.iter().map(|e| e.complexity()).sum(),
         }
     }
 
+    /// Expression contains no variables
     pub(crate) fn is_constant(&self) -> bool {
         use Expr::*;
         match self {
@@ -52,6 +57,7 @@ impl Expr {
             Not(inner) => inner.is_constant(),
             Cons(head, tail) => head.is_constant() && tail.is_constant(),
             Infix(_, lhs, rhs) => lhs.is_constant() && rhs.is_constant(),
+            Or(set) => set.iter().all(|e| e.is_constant()),
         }
     }
 
@@ -72,7 +78,12 @@ impl std::fmt::Display for Expr {
             Not(v) if is_atom(v) => write!(f, "~{}", v),
             Not(v) => write!(f, "~({})", v),
             Literal(v) => write!(f, "{}", v),
-            Cons(h, t) => write!(f, "{} {}", h, t),
+            Cons(h, t) => match (is_atom(h), is_atom(t)) {
+                (true, false) => write!(f, "{} ({})", h, t),
+                (false, true) => write!(f, "({}) {}", h, t),
+                (false, false) => write!(f, "({}) ({})", h, t),
+                (true, true) => write!(f, "{} {}", h, t),
+            },
             Infix(op, a, b) => {
                 let op = operators::name(*op);
                 match (is_atom(a), is_atom(b)) {
@@ -85,6 +96,14 @@ impl std::fmt::Display for Expr {
             Variable(v, c) if let Wildcard = c.as_ref() => write!(f, "${}", v),
             Variable(v, c) if is_atom(c) => write!(f, "${}:({})", v, c),
             Variable(v, c) => write!(f, "${}:{}", v, c),
+            Or(v) => {
+                let s = v
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<String>>()
+                    .join("|");
+                write!(f, "{}", s)
+            }
         }
     }
 }
@@ -97,7 +116,12 @@ impl std::fmt::Debug for Expr {
             Not(v) if is_atom(v) => write!(f, "~{:?}", v),
             Not(v) => write!(f, "~({:?})", v),
             Literal(v) => write!(f, "{}", v),
-            Cons(h, t) => write!(f, "({:?} {:?})", h, t),
+            Cons(h, t) => match (is_atom(h), is_atom(t)) {
+                (true, false) => write!(f, "{:?} ({:?})", h, t),
+                (false, true) => write!(f, "({:?}) {:?}", h, t),
+                (false, false) => write!(f, "({:?}) ({:?})", h, t),
+                (true, true) => write!(f, "{:?} {:?}", h, t),
+            },
             Infix(op, a, b) => {
                 let op = operators::name(*op);
                 match (is_atom(a), is_atom(b)) {
@@ -110,6 +134,14 @@ impl std::fmt::Debug for Expr {
             Variable(v, c) if let Wildcard = c.as_ref() => write!(f, "${}", v),
             Variable(v, c) if is_atom(c) => write!(f, "${}:({:?})", v, c),
             Variable(v, c) => write!(f, "${}:{:?}", v, c),
+            Or(v) => {
+                let s = v
+                    .iter()
+                    .map(|x| format!("{:?}", x))
+                    .collect::<Vec<String>>()
+                    .join("|");
+                write!(f, "({})", s)
+            }
         }
     }
 }

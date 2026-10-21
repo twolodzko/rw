@@ -73,6 +73,35 @@ impl Mapping {
             None
         }
     }
+
+    /// If it is possible to merge the new mapping with this mapping do so and return a success status
+    pub(crate) fn try_merge(&mut self, other: &Mapping) -> bool {
+        if !other.pattern.is_constant() || !other.template.is_constant() {
+            return false;
+        }
+        if self.template == other.template {
+            use Expr::*;
+            match (&mut self.pattern, &other.pattern) {
+                (Wildcard, _) => {}
+                (_, Wildcard) => self.pattern = Wildcard,
+                (Or(this), Or(other)) => {
+                    for p in other {
+                        if !this.contains(p) {
+                            this.push(p.clone());
+                        }
+                    }
+                }
+                (Or(this), other) => {
+                    if !this.contains(other) {
+                        this.push(other.clone());
+                    }
+                }
+                _ => self.pattern = Or(vec![self.pattern.clone(), other.pattern.clone()]),
+            }
+            return true;
+        }
+        false
+    }
 }
 
 fn is_match(pattern: &Expr, value: &Expr, vars: &mut HashMap<String, Expr>) -> bool {
@@ -103,6 +132,16 @@ fn is_match(pattern: &Expr, value: &Expr, vars: &mut HashMap<String, Expr>) -> b
         }
         (Infix(lo, la, lb), Infix(ro, ra, rb)) => {
             lo == ro && is_match(la, ra, vars) && is_match(lb, rb, vars)
+        }
+        (Or(set), _) => {
+            for p in set {
+                let copy = vars.clone();
+                if is_match(p, value, vars) {
+                    return true;
+                }
+                *vars = copy;
+            }
+            false
         }
         _ => false,
     }
@@ -156,6 +195,7 @@ fn validate(pattern: &Expr, template: &Expr) -> Result<()> {
                 check(lhs, seen)?;
                 return check(rhs, seen);
             }
+            Or(_) => bail!("OR patterns are not allowed in templates"),
             _ => {}
         }
         Ok(())

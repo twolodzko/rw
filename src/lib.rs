@@ -6,6 +6,9 @@ mod queue;
 mod rewrite;
 mod types;
 
+#[cfg(test)]
+mod tests;
+
 use std::{cell::LazyCell, path::PathBuf};
 
 pub use evaluate::{eval, eval_file};

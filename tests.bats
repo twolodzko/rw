@@ -84,6 +84,15 @@ BIN='./rw'
    [ "$status" -eq 0 ]
 }
 
+
+@test "examples/or.rw" {
+   run $BIN examples/or.rw
+   for line in "${lines[@]}"; do
+      [ "$line" = "ok" ]
+   done
+   [ "$status" -eq 0 ]
+}
+
 @test "examples/imports/main.rw" {
    run $BIN examples/imports/main.rw
    for line in "${lines[@]}"; do
@@ -92,10 +101,16 @@ BIN='./rw'
    [ "$status" -eq 0 ]
 }
 
-@test "wildcard" {
-    run $BIN <<EOF
-let _ => z
-assert (a b) = z
+@test "merge rules" {
+   run $BIN <<EOF
+let a => x
+let b|c => x
+rules
+
+let _ => x
+rules
 EOF
-    [ "$status" -eq 0 ]
+   [ "${lines[0]}" = "a|b|c => x" ]
+   [ "${lines[1]}" = "_ => x" ]
+   [ "$status" -eq 0 ]
 }

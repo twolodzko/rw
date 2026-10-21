@@ -62,21 +62,35 @@ impl Context {
     }
 
     pub(crate) fn insert_mapping(&mut self, m: Mapping) -> Result<()> {
-        if !self.rules.contains(&m) {
-            self.rules.push(m.clone());
-            if let Some((lhs, rhs)) = m.literal_edge() {
-                self.update_edges(lhs, rhs)?;
+        for old in &mut self.rules {
+            if m == *old {
+                return Ok(());
             }
+
+            if old.try_merge(&m) {
+                if let Some((lhs, rhs)) = m.literal_edge() {
+                    self.update_edges(lhs, rhs)?;
+                }
+                return Ok(());
+            }
+        }
+        self.rules.push(m.clone());
+        if let Some((lhs, rhs)) = m.literal_edge() {
+            self.update_edges(lhs, rhs)?;
         }
         Ok(())
     }
 
     fn update_edges(&mut self, lhs: &str, rhs: &str) -> Result<()> {
-        // update edges for the mapping
-        self.outgoing
+        if !self
+            .outgoing
             .entry(lhs.to_string())
             .or_default()
-            .insert(rhs.to_string());
+            .insert(rhs.to_string())
+        {
+            // the edge already exists
+            return Ok(());
+        }
         self.incoming
             .entry(rhs.to_string())
             .or_default()
@@ -97,80 +111,16 @@ impl Context {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    // use super::Context;
-    // use crate::{eval, parser::Parser, types::Statement};
-    // use anyhow::Result;
-
-    // fn solve_all(source: &str) -> Result<Vec<String>> {
-    //     let mut rules = Context::default();
-    //     let mut acc = Vec::new();
-
-    //     for stmt in Parser::from(source) {
-    //         match stmt? {
-    //             Statement::Rewrite(expr) => {
-    //                 acc.push(rules.rewrite(expr).to_string());
-    //             }
-    //             stmt => eval(stmt, &mut rules)?,
-    //         }
-    //     }
-    //     Ok(acc)
-    // }
-
-    // #[test]
-    // fn apply_all_reductions() {
-    //     let source = r"infix + 100
-    //                    let $A + 0 => $A
-    //                    let $A + $B => $B + $A
-    //                    rewrite (0 + 5) + 0";
-    //     assert_eq!(solve_all(source).unwrap(), vec!["5".to_string()]);
-    // }
-
-    // #[test]
-    // fn rewrite_is_deterministic() {
-    //     let source = r"infix + 100
-    //                    let $A + 0 => $A
-    //                    let $A + $B => $B + $A
-    //                    rewrite (0 + 5) + 0";
-    //     let first = solve_all(source).unwrap();
-    //     for _ in 0..20 {
-    //         assert_eq!(solve_all(source).unwrap(), first);
-    //     }
-    // }
-
-    // #[test]
-    // fn rewrite_applies_mapping() {
-    //     let source = r"let foo => bar
-    //                    rewrite foo";
-    //     assert_eq!(solve_all(source).unwrap(), vec!["bar".to_string()]);
-    // }
-
-    // #[test]
-    // fn literal_mappings() {
-    //     let source = r"let a => b
-    //                    rewrite a = b
-    //                    let b => c
-    //                    rewrite a = c";
-    //     assert_eq!(
-    //         solve_all(source).unwrap(),
-    //         vec!["b = b".to_string(), "c = c".to_string()]
-    //     );
-    // }
-
-    // #[test]
-    // fn mappings_are_unidirectional() {
-    //     let source = r"let a => b
-    //                    let a => c
-    //                    rewrite b = c";
-    //     assert_eq!(solve_all(source).unwrap(), vec!["b = c".to_string()]);
-    // }
-
-    // #[test]
-    // fn validate_facts() {
-    //     let source = r"let a
-    //                    let not b
-    //                    let a and (b and c)";
-    //     assert!(solve_all(source).is_err())
-    // }
+impl std::fmt::Display for Context {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.rules
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<String>>()
+                .join("\n")
+        )
+    }
 }

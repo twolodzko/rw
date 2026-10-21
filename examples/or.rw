@@ -1,0 +1,8 @@
+
+infix = 10
+let $A = $A => ok
+
+let (x x) => x
+let a|b => x
+
+rewrite a b b a = x

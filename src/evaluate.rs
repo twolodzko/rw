@@ -26,6 +26,7 @@ pub fn eval(statement: Statement, context: &mut Context) -> Result<()> {
                 WORKING_DIRECTORY.pop();
             }
         }
+        Rules => println!("{}", context),
         // those statements are evaluated during parsing
         NewOp(_, _) => {}
     }
