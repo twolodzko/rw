@@ -56,4 +56,8 @@ impl Queue {
     pub(crate) fn pop(&mut self) -> Option<Rc<Expr>> {
         self.items.pop().map(|Reverse(c)| c.value)
     }
+
+    pub(crate) fn len(&self) -> usize {
+        self.items.len()
+    }
 }
