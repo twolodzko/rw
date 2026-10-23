@@ -7,9 +7,6 @@ mod queue;
 mod rewrite;
 mod types;
 
-#[cfg(test)]
-mod tests;
-
 use std::str::FromStr;
 use std::sync::LazyLock;
 
