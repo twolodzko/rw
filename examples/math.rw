@@ -5,17 +5,22 @@ infix * 110
 infix / 110
 
 let $A + 0 => $A
-let $A + (-$B) => $A - $B
+let $A + (-$B) <=> $A - $B
 let $A + $B => $B + $A
+let $A + $B => $B + $A
+let $A + $B + $C <=> $A + ($B + $C)
 
 let -(-$A) => $A
 let $A - 0 => $A
 let 0 - $A => -$A
 
-let _ * 0 => 0
-let $A * 1 => $A
+let  _ * 0  => 0
+let $A * 1  => $A
 let $A * $B => $B * $A
+let $A * $B * $C <=> $A * ($B * $C)
 
-let $A / 1 => $A
+let $A / 1  => $A
 let $A / $A => 1
-let _/ 0 => NaN
+let  _ / 0  => NaN
+
+let $A * ($B + $C) <=> ($A * $B) + ($A * $C)
