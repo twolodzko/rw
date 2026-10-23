@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.104"
+itertools = "0.15.0"
 relative-path = "2.0.2"
 rustyline = "18.0.1"
 

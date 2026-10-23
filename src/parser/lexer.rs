@@ -11,7 +11,7 @@ use crate::{
     },
 };
 use anyhow::{Result, bail};
-use std::{collections::VecDeque, str::FromStr};
+use std::{collections::VecDeque, rc::Rc, str::FromStr};
 
 pub struct Parser<R: Reader> {
     tokenizer: Tokenizer<R>,
@@ -89,7 +89,7 @@ impl<R: Reader> Parser<R> {
                                         }
 
                                         let tail = self.expr(false)?;
-                                        let lhs = Cons(Box::new(lhs.clone()), Box::new(tail));
+                                        let lhs = Cons(Rc::new(lhs.clone()), Rc::new(tail));
 
                                         let Some(t) = self.tokenizer.next()? else {
                                             bail!("unexpected end of input")
@@ -153,7 +153,7 @@ impl<R: Reader> Parser<R> {
         }
 
         if acc.len() > 1 {
-            Ok(Expr::Or(acc))
+            Ok(Expr::new_or(acc))
         } else {
             Ok(acc.pop().unwrap())
         }
@@ -177,7 +177,7 @@ impl<R: Reader> Parser<R> {
             self.tokenizer.skip();
 
             let rhs = self.expr_bp(bp, ignore_newline)?;
-            lhs = Expr::Infix(op, Box::new(lhs), Box::new(rhs));
+            lhs = Expr::Infix(op, Rc::new(lhs), Rc::new(rhs));
         }
 
         Ok(lhs)
@@ -190,7 +190,7 @@ impl<R: Reader> Parser<R> {
             && !tail.is_boundary()
         {
             let tail = self.cons()?;
-            return Ok(Cons(Box::new(head), Box::new(tail)));
+            return Ok(Cons(Rc::new(head), Rc::new(tail)));
         }
         Ok(head)
     }
@@ -208,14 +208,14 @@ impl<R: Reader> Parser<R> {
                     } else {
                         Expr::Wildcard
                     };
-                    return Ok(Expr::Variable(s, Box::new(cond)));
+                    return Ok(Expr::Variable(s, Rc::new(cond)));
                 }
                 Not => {
                     let expr = self.atom()?;
                     if let Expr::Not(inner) = expr {
-                        return Ok(*inner);
+                        return Ok(Rc::unwrap_or_clone(inner));
                     }
-                    return Ok(Expr::Not(Box::new(expr)));
+                    return Ok(Expr::Not(Rc::new(expr)));
                 }
                 LParenth => {
                     let expr = self.expr(true)?;
@@ -279,12 +279,13 @@ mod tests {
         Statement::{self, *},
     };
     use anyhow::Result;
+    use std::rc::Rc;
     use test_case::test_case;
 
     #[test_case("let $a => $a", vec![
         LetMap(
-            Variable("a".to_string(), Box::new(Wildcard)),
-            Variable("a".to_string(), Box::new(Wildcard))),
+            Variable("a".to_string(), Rc::new(Wildcard)),
+            Variable("a".to_string(), Rc::new(Wildcard))),
      ];
      "simple mapping")]
     fn parse(input: &str, expected: Vec<Statement>) {

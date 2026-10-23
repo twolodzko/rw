@@ -1,5 +1,6 @@
 use crate::operators;
 use anyhow::{Result, bail};
+use std::{collections::HashSet, rc::Rc};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
@@ -28,11 +29,11 @@ impl std::fmt::Display for Statement {
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum Expr {
     Wildcard,
-    Not(Box<Expr>),
+    Not(Rc<Expr>),
     Literal(String),
-    Cons(Box<Expr>, Box<Expr>),
-    Infix(usize, Box<Expr>, Box<Expr>),
-    Variable(String, Box<Expr>),
+    Cons(Rc<Expr>, Rc<Expr>),
+    Infix(usize, Rc<Expr>, Rc<Expr>),
+    Variable(String, Rc<Expr>),
     Or(Vec<Expr>),
 }
 
@@ -68,6 +69,23 @@ impl Expr {
         }
         Ok(())
     }
+
+    pub(crate) fn new_or(mut value: Vec<Expr>) -> Expr {
+        let mut seen = HashSet::new();
+        let mut i = 0;
+        while i < value.len() {
+            if seen.insert(value[i].clone()) {
+                i += 1;
+            } else {
+                value.remove(i);
+            }
+        }
+        if value.len() == 1 {
+            value.pop().unwrap()
+        } else {
+            Expr::Or(value)
+        }
+    }
 }
 
 impl std::fmt::Display for Expr {
@@ -99,7 +117,13 @@ impl std::fmt::Display for Expr {
             Or(v) => {
                 let s = v
                     .iter()
-                    .map(ToString::to_string)
+                    .map(|e| {
+                        if !is_atom(e) {
+                            format!("({})", e)
+                        } else {
+                            e.to_string()
+                        }
+                    })
                     .collect::<Vec<String>>()
                     .join("|");
                 write!(f, "{}", s)
@@ -137,10 +161,16 @@ impl std::fmt::Debug for Expr {
             Or(v) => {
                 let s = v
                     .iter()
-                    .map(|x| format!("{:?}", x))
+                    .map(|e| {
+                        if !is_atom(e) {
+                            format!("({:?})", e)
+                        } else {
+                            e.to_string()
+                        }
+                    })
                     .collect::<Vec<String>>()
                     .join("|");
-                write!(f, "({})", s)
+                write!(f, "{}", s)
             }
         }
     }

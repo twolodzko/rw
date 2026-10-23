@@ -1,3 +1,4 @@
+mod context;
 mod evaluate;
 mod mapping;
 mod operators;
@@ -9,10 +10,6 @@ mod types;
 #[cfg(test)]
 mod tests;
 
-use std::{cell::LazyCell, path::PathBuf};
-
+pub use context::Context;
 pub use evaluate::{eval, eval_file};
 pub use parser::Parser;
-pub use rewrite::Context;
-
-pub static mut WORKING_DIRECTORY: LazyCell<Vec<PathBuf>> = LazyCell::new(Vec::new);
