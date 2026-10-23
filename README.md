@@ -59,6 +59,8 @@ Lists can be used to imitate behavior of functions, prefix operators, etc.
 
 ## Resources
 
+### Rewrite systems
+
 * https://en.wikipedia.org/wiki/Rewriting
 * https://stackoverflow.com/questions/7540227/strategies-for-simplifying-math-expressions
 * https://www.cs.tau.ac.il/~nachum/papers/klop.pdf
@@ -71,3 +73,10 @@ Lists can be used to imitate behavior of functions, prefix operators, etc.
 * https://homepages.cwi.nl/~daybuild/daily-books/extraction-transformation/term-rewriting/term-rewriting.html
 * https://jf-parent.github.io/blog/2026/03/08/rewriting_system/
 * https://en.wikipedia.org/wiki/Knuth%E2%80%93Bendix_completion_algorithm
+
+### Unification
+
+* https://norvig.com/unify-bug.pdf
+* https://scottweeden.online/blog/2025/11/14/unification-algorithm/
+* https://web.archive.org/web/20201127041245/http://www.cs.bu.edu/%7Esnyder/publications/UnifChapter.pdf
+* https://www.cs.trincoll.edu/~ram/cpsc352/notes/unification.html
