@@ -203,8 +203,25 @@ impl Expr {
             Not(expr) => Rc::make_mut(expr).expand_symmetries(symmetries),
             Or(set) => {
                 set.iter_mut().for_each(|e| e.expand_symmetries(symmetries));
+                flatten_set(set);
             }
             _ => {}
+        }
+    }
+}
+
+fn flatten_set(set: &mut Vec<Expr>) {
+    let mut i = 0;
+    while i < set.len() {
+        if let Expr::Or(inner) = &set[i] {
+            for e in inner.clone() {
+                if !set.contains(&e) {
+                    set.push(e);
+                }
+            }
+            set.remove(i);
+        } else {
+            i += 1;
         }
     }
 }
